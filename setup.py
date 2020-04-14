@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='appenv',
-    version='0.1',
+    version='0.2.dev0',
     author='Christian Theune',
     author_email='ct@flyingcircus.io',
     license='BSD (3-clause)',
