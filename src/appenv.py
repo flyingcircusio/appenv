@@ -130,6 +130,9 @@ def main():
     base = os.path.dirname(__file__)
     os.chdir(base)
 
+    # Allow called programs to find out where the wrapper lives
+    os.environ['APPENV_BASEDIR'] = base
+
     if not os.path.exists('requirements.txt'):
         print(f'Missing `requirements.txt` - this is not a proper appenv '
                ' directory.')
