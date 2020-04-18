@@ -155,6 +155,10 @@ def main():
         else:
             argv.append(arg)
 
+    if not os.path.exists('requirements.lock'):
+        print('WARNING: no lock file found, implicitly running unclean build')
+        meta_argv.append('-u')
+
     default_appname = os.path.splitext(os.path.basename(__file__))[0]
 
     # Parse the appenv arguments
