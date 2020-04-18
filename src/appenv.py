@@ -37,16 +37,33 @@ def cmd(c, quiet=False):
         raise
 
 
+def ensure_venv(target):
+    if os.path.exists(os.path.join(target, 'bin', 'pip3')):
+        # XXX Support probing the target whether it works properly and rebuild
+        # if necessary
+        return
+
+    if os.path.exists(target):
+        cmd(f'rm -rf {target}')
+
+    print(f'Creating virtualenv in `{target}` ...')
+    try:
+        # This is trying to detect whether we're on a proper Python stdlib
+        # or on a fucked up debian. See various StackOverflow questions about
+        # this.
+        import distutils.util
+        import ensurepip
+    except ModuleNotFoundError:
+        # Ok, lets unfuck this, if we can. May need privilege escalation 
+        # at some point.
+        cmd(f'apt-get -y -q install python3-distutils python3-venv')
+    venv.create(target, with_pip=True)
+
+
 def update_lockfile(argv, meta_args):
     print('Updating lockfile')
     tmpdir = os.path.join(meta_args.appenvdir, 'updatelock')
-    if os.path.exists(tmpdir):
-        cmd(f'rm -rf {tmpdir}')
-
-    print('Creating temporary virtualenv ...')
-    venv.create(tmpdir)
-    print('Installing pip ...')
-    cmd(f'{tmpdir}/bin/python -m ensurepip')
+    ensure_venv(tmpdir)
     print('Installing packages ...')
     cmd(f'{tmpdir}/bin/pip3 install -r requirements.txt')
     result = cmd(f'{tmpdir}/bin/pip3 freeze')
@@ -63,16 +80,10 @@ def run(argv, meta_args):
     # - enumerate the revisions and just copy the requirements.txt, check
     #   for ones that are clean or rebuild if necessary
 
-
-    
     if meta_args.unclean:
         print('Running unclean installation from requirements.txt')
         env_dir = os.path.join(meta_args.appenvdir, 'unclean')
-        if not os.path.exists(env_dir):
-            print('Creating venv ...')
-            venv.create(env_dir)
-            print('Installing pip ...')
-            cmd(f'{env_dir}/bin/python -m ensurepip')
+        ensure_venv(env_dir)
         print("Ensuring unclean install ...")
         cmd(f'{env_dir}/bin/pip3 install -r requirements.txt --upgrade')
     else:
@@ -94,10 +105,7 @@ def run(argv, meta_args):
                 cmd(f'rm -rf {env_dir}')
 
         if not os.path.exists(env_dir):
-            print('Creating venv ...')
-            venv.create(env_dir)
-            print('Installing pip ...')
-            cmd(f'{env_dir}/bin/python -m ensurepip')
+            ensure_venv(env_dir)
 
             with open(f'{env_dir}/requirements.lock', 'wb') as f:
                 f.write(requirements)
