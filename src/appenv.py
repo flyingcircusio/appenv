@@ -16,7 +16,6 @@
 
 
 import argparse
-import ensurepip
 import hashlib
 import os
 import os.path
@@ -28,6 +27,8 @@ import venv
 
 def cmd(c, quiet=False):
     # TODO revisit the cmd() architecture w/ python 3
+    # XXX better IO management for interactive output and seeing original errors
+    # and output at appropriate places ...
     try:
         return subprocess.check_output([c], stderr=subprocess.PIPE, shell=True)
     except subprocess.CalledProcessError as e:
