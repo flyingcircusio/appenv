@@ -32,11 +32,11 @@ def cmd(c, quiet=False):
     # XXX better IO management for interactive output and seeing original errors
     # and output at appropriate places ...
     try:
-        return subprocess.check_output([c], stderr=subprocess.PIPE, shell=True)
+        return subprocess.check_output([c], stderr=subprocess.STDOUT, shell=True)
     except subprocess.CalledProcessError as e:
         if not quiet:
             print("{} returned with exit code {}".format(c, e.returncode))
-            print(e.output)
+            print(e.output.decode('ascii'))
         raise
 
 
