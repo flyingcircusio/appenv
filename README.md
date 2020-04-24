@@ -7,6 +7,11 @@ The following examples use the `ducker` package to illustrate how to use
 
 ## Bootstrapping an application / project
 
+Use `t=$(mktemp) && curl -sL
+https://github.com/flyingcircusio/appenv/raw/master/src/appenv.py -o $t &&
+python3 $t appenv-init` for bootstrapping a new project or call an existing
+appenv file with `appenv-init` as the command to bootstrap by ``cloning``.
+
 ```
 $ t=$(mktemp) && curl -sL https://github.com/flyingcircusio/appenv/raw/master/src/appenv.py -o $t && python3 $t appenv-init
 Let's create a new appenv project.
