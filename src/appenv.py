@@ -49,7 +49,6 @@ def ensure_venv(target):
     if os.path.exists(target):
         cmd(f'rm -rf {target}')
 
-    print(f'Creating virtualenv in `{target}` ...')
     try:
         # This is trying to detect whether we're on a proper Python stdlib
         # or on a fucked up debian. See various StackOverflow questions about
@@ -90,7 +89,6 @@ def run(argv, meta_args):
         print("Ensuring unclean install ...")
         cmd(f'{env_dir}/bin/pip3 install -r requirements.txt --upgrade')
     else:
-        print('Running clean installation from requirements.lock')
         requirements = open('requirements.lock', 'rb').read()
         env_hash = hashlib.new('sha256', requirements).hexdigest()
         env_dir = os.path.join(meta_args.appenvdir, env_hash)
@@ -104,7 +102,6 @@ def run(argv, meta_args):
                 else:
                     shutil.rmtree(path)
         if os.path.exists(env_dir):
-            print('Found existing envdir')
             # check whether the existing environment is OK, it might be nice
             # to rebuild in a separate place if necessary to avoid interruptions
             # to running services, but that isn't what we're using it for at the
