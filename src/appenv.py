@@ -16,10 +16,12 @@
 
 
 import argparse
+import glob
 import hashlib
 import os
 import os.path
 import shlex
+import shutil
 import subprocess
 import sys
 import venv
@@ -92,6 +94,15 @@ def run(argv, meta_args):
         requirements = open('requirements.lock', 'rb').read()
         env_hash = hashlib.new('sha256', requirements).hexdigest()
         env_dir = os.path.join(meta_args.appenvdir, env_hash)
+
+        whitelist = set([env_dir, os.path.join(meta_args.appenvdir, 'unclean')])
+        for path in glob.glob('{meta_args.appenvdir}/*'.format(meta_args=meta_args)):
+            if not path in whitelist:
+                print('Removing expired path: {path} ...'.format(path=path))
+                if not os.path.isdir(path):
+                    os.unlink(path)
+                else:
+                    shutil.rmtree(path)
         if os.path.exists(env_dir):
             print('Found existing envdir')
             # check whether the existing environment is OK, it might be nice
