@@ -139,7 +139,8 @@ def reset(argv, meta_args):
 
 
 def main():
-    base = os.path.dirname(__file__)
+    # The major version is already indicated in the python3 shebang ... 
+    print('Running on Python {}'.format(sys.version.replace('\n', ' ')))
     os.chdir(base)
 
     # Allow called programs to find out where the wrapper lives
