@@ -131,6 +131,10 @@ def _prepare(meta_args):
 
 def run(argv, meta_args):
     env_dir = _prepare(meta_args)
+    # Allow called programs to find out where the wrapper lives
+    base = os.path.abspath(os.path.dirname(__file__))
+    os.environ['APPENV_BASEDIR'] = base
+    os.chdir(base)
     os.execv(os.path.join(env_dir, 'bin', meta_args.appname), argv)
 
 
@@ -146,21 +150,38 @@ def reset(argv, meta_args):
     cmd('rm -rf {appenvdir}'.format(format(appenvdir=meta_args.appenvdir)))
 
 
+def init(argv, meta_args):
+    print('Let\'s create a new appenv project.')
+    command = None
+    while not command:
+        command = input('What should the command be named? ').strip()
+    dependency = input('What is the main dependency as found on PyPI? [{}] '.format(command)).strip()
+    if not dependency:
+        dependency = command
+    workdir = os.getcwd()
+    default_target = os.path.join(workdir, command)
+    target = input('Where should we create this? [{}] '.format(default_target)).strip()
+    if target:
+        target = os.path.join(workdir, target)
+    else:
+        target = default_target
+    target = os.path.abspath(target)
+    if not os.path.exists(target):
+        os.makedirs(target)
+    print('Creating appenv setup in {} ...'.format(target))
+    os.chdir(target)
+    with open(command, 'wb') as new_command_file:
+        with open(__file__, 'rb') as bootstrap_file:
+            new_command_file.write(bootstrap_file.read())
+    os.chmod(command, 0o755)
+    with open('requirements.txt', 'w') as requirements_txt:
+        requirements_txt.write(dependency+'\n')
+    print('Done. You can now `cd {}` and call `./{}` to bootstrap and run it.'.format(os.path.relpath(target, workdir), command))
+
+
 def main():
     # The major version is already indicated in the python3 shebang ... 
     print('Running on Python {}'.format(sys.version.replace('\n', ' ')))
-
-    base = os.path.abspath(os.path.dirname(__file__))
-    os.chdir(base)
-
-
-    # Allow called programs to find out where the wrapper lives
-    os.environ['APPENV_BASEDIR'] = base
-
-    if not os.path.exists('requirements.txt'):
-        print('Missing `requirements.txt` - this is not a proper appenv '
-              ' directory.')
-        sys.exit(1)
 
     # clear PYTHONPATH variable to get a defined environment
     # XXX this is a bit of history. not sure whether its still needed. keeping it
@@ -201,6 +222,10 @@ def main():
     p = subparsers.add_parser(
         'update-lockfile', help='Update the lock file.')
     p.set_defaults(func=update_lockfile)
+
+    p = subparsers.add_parser(
+        'init', help='Create a new appenv project.')
+    p.set_defaults(func=init)
 
     p = subparsers.add_parser(
         'reset', help='Reset the environment.')
