@@ -47,7 +47,7 @@ def ensure_venv(target):
         return
 
     if os.path.exists(target):
-        cmd(f'rm -rf {target}')
+        cmd('rm -rf {target}'.format(target=target))
 
     try:
         # This is trying to detect whether we're on a proper Python stdlib
@@ -55,10 +55,10 @@ def ensure_venv(target):
         # this.
         import distutils.util
         import ensurepip
-    except ModuleNotFoundError:
+    except ImportError:
         # Ok, lets unfuck this, if we can. May need privilege escalation 
         # at some point.
-        cmd(f'apt-get -y -q install python3-distutils python3-venv')
+        cmd('apt-get -y -q install python3-distutils python3-venv')
     venv.create(target, with_pip=True)
 
 
@@ -67,11 +67,11 @@ def update_lockfile(argv, meta_args):
     tmpdir = os.path.join(meta_args.appenvdir, 'updatelock')
     ensure_venv(tmpdir)
     print('Installing packages ...')
-    cmd(f'{tmpdir}/bin/pip3 install -r requirements.txt')
-    result = cmd(f'{tmpdir}/bin/pip3 freeze')
+    cmd('{tmpdir}/bin/pip3 install -r requirements.txt'.format(tmpdir=tmpdir))
+    result = cmd('{tmpdir}/bin/pip3 freeze'.format(tmpdir=tmpdir))
     with open('requirements.lock', 'wb') as f:
         f.write(result)
-    cmd(f'rm -rf {tmpdir}')
+    cmd('rm -rf {tmpdir}'.format(tmpdir=tmpdir))
 
 
 def _prepare(meta_args):
@@ -86,7 +86,7 @@ def _prepare(meta_args):
         env_dir = os.path.join(meta_args.appenvdir, 'unclean')
         ensure_venv(env_dir)
         print("Ensuring unclean install ...")
-        cmd(f'{env_dir}/bin/pip3 install -r requirements.txt --upgrade')
+        cmd('{env_dir}/bin/pip3 install -r requirements.txt --upgrade'.format(env_dir=env_dir))
     else:
         requirements = open('requirements.lock', 'rb').read()
         env_hash = hashlib.new('sha256', requirements).hexdigest()
@@ -106,22 +106,22 @@ def _prepare(meta_args):
             # to running services, but that isn't what we're using it for at the
             # moment
             try:
-                if not os.path.exists(f'{env_dir}/appenv.ready'):
+                if not os.path.exists('{env_dir}/appenv.ready'.format(env_dir=env_dir)):
                     raise Exception()
             except Exception:
                 print('Existing envdir not consistent, deleting')
-                cmd(f'rm -rf {env_dir}')
+                cmd('rm -rf {env_dir}'.format(env_dir=env_dir))
 
         if not os.path.exists(env_dir):
             ensure_venv(env_dir)
 
-            with open(f'{env_dir}/requirements.lock', 'wb') as f:
+            with open(os.path.join(env_dir, 'requirements.lock'), 'wb') as f:
                 f.write(requirements)
 
-            print('Installing application ...')
-            cmd(f'{env_dir}/bin/pip3 install --no-deps -r {env_dir}/requirements.lock')
+            print('Installing {meta_args.appname} ...'.format(meta_args=meta_args))
+            cmd('{env_dir}/bin/pip3 install --no-deps -r {env_dir}/requirements.lock'.format(env_dir=env_dir))
 
-            cmd(f'{env_dir}/bin/pip3 check')
+            cmd('{env_dir}/bin/pip3 check'.format(env_dir=env_dir))
 
             with open(os.path.join(env_dir, 'appenv.ready'), 'w') as f:
                 f.write('Ready or not, here I come, you can\'t hide\n')
@@ -142,8 +142,8 @@ def python(argv, meta_args):
 
 
 def reset(argv, meta_args):
-    print(f'Resetting ALL application environments in {appenvdir} ...')
-    cmd(f'rm -rf {appenvdir}')
+    print('Resetting ALL application environments in {appenvdir} ...'.format(appenvdir=meta_args.appenvdir))
+    cmd('rm -rf {appenvdir}'.format(format(appenvdir=meta_args.appenvdir)))
 
 
 def main():
@@ -158,8 +158,8 @@ def main():
     os.environ['APPENV_BASEDIR'] = base
 
     if not os.path.exists('requirements.txt'):
-        print(f'Missing `requirements.txt` - this is not a proper appenv '
-               ' directory.')
+        print('Missing `requirements.txt` - this is not a proper appenv '
+              ' directory.')
         sys.exit(1)
 
     # clear PYTHONPATH variable to get a defined environment
@@ -194,7 +194,7 @@ def main():
     meta_parser.add_argument(
         '--appname', default=default_appname)
     meta_parser.add_argument(
-        '--appenvdir', default=f'.{default_appname}')
+        '--appenvdir', default='.'+default_appname)
     meta_parser.set_defaults(func=run)
 
     subparsers = meta_parser.add_subparsers()
