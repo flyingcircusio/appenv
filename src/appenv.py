@@ -151,7 +151,7 @@ def reset(argv, meta_args):
 
 
 def init(argv, meta_args):
-    print('Let\'s create a new appenv project.')
+    print('Let\'s create a new appenv project.\n')
     command = None
     while not command:
         command = input('What should the command be named? ').strip()
@@ -168,6 +168,7 @@ def init(argv, meta_args):
     target = os.path.abspath(target)
     if not os.path.exists(target):
         os.makedirs(target)
+    print()
     print('Creating appenv setup in {} ...'.format(target))
     os.chdir(target)
     with open(command, 'wb') as new_command_file:
@@ -176,13 +177,11 @@ def init(argv, meta_args):
     os.chmod(command, 0o755)
     with open('requirements.txt', 'w') as requirements_txt:
         requirements_txt.write(dependency+'\n')
+    print()
     print('Done. You can now `cd {}` and call `./{}` to bootstrap and run it.'.format(os.path.relpath(target, workdir), command))
 
 
 def main():
-    # The major version is already indicated in the python3 shebang ... 
-    print('Running on Python {}'.format(sys.version.replace('\n', ' ')))
-
     # clear PYTHONPATH variable to get a defined environment
     # XXX this is a bit of history. not sure whether its still needed. keeping it
     # for good measure
@@ -201,7 +200,6 @@ def main():
             argv.append(arg)
 
     if not os.path.exists('requirements.lock'):
-        print('WARNING: no lock file found, implicitly running unclean build')
         meta_argv.insert(0, '-u')
 
     default_appname = os.path.splitext(os.path.basename(__file__))[0]
