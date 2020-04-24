@@ -169,7 +169,7 @@ def main():
 
     if not os.path.exists('requirements.lock'):
         print('WARNING: no lock file found, implicitly running unclean build')
-        meta_argv.append('-u')
+        meta_argv.insert(0, '-u')
 
     default_appname = os.path.splitext(os.path.basename(__file__))[0]
 
