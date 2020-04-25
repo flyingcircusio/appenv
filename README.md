@@ -1,19 +1,16 @@
 # appenv
 
-Self-contained bootstrapping/updating of Python applications deployed through shared repositories
+Self-contained bootstrapping/updating of Python applications deployed through shared repositories.
 
-The following examples use the `ducker` package to illustrate how to use
-`appenv`. `ducker` and `appenv` are not related at all.
+> The following examples use the `ducker` package to illustrate how to use
+>`appenv`. `ducker` and `appenv` are not related at all.
 
 ## Bootstrapping an application / project
 
-Use `t=$(mktemp) && curl -sL
-https://github.com/flyingcircusio/appenv/raw/master/src/appenv.py -o $t &&
-python3 $t appenv-init` for bootstrapping a new project or call an existing
-appenv file with `appenv-init` as the command to bootstrap by ``cloning``.
+Use `curl -sL https://github.com/flyingcircusio/appenv/raw/master/bootstrap | sh` for bootstrapping a new project.
 
 ```
-$ t=$(mktemp) && curl -sL https://github.com/flyingcircusio/appenv/raw/master/src/appenv.py -o $t && python3 $t appenv-init
+$ curl -sL https://github.com/flyingcircusio/appenv/raw/master/bootstrap | sh
 Let's create a new appenv project.
 
 What should the command be named? ducker <return>
@@ -71,3 +68,8 @@ optional arguments:
   --appname APPNAME
   --appenvdir APPENVDIR
 ```
+
+
+## Advanced usage
+
+* ``bootstrap by cloning``
