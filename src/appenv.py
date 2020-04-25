@@ -150,7 +150,7 @@ def python(argv, meta_args):
 
 def reset(argv, meta_args):
     print('Resetting ALL application environments in {appenvdir} ...'.format(appenvdir=meta_args.appenvdir))
-    cmd('rm -rf {appenvdir}'.format(format(appenvdir=meta_args.appenvdir)))
+    cmd('rm -rf {appenvdir}'.format(appenvdir=meta_args.appenvdir))
 
 
 def init(argv, meta_args):

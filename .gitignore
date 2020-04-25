@@ -1,4 +1,9 @@
 example/.ducker
+bin/
+include/
+htmlcov/
+lib/
+pyvenv.cfg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
