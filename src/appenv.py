@@ -4,7 +4,7 @@
 
 # Assumptions:
 #
-#	- the appenv file is placed in a repo with the name of the application
+#   - the appenv file is placed in a repo with the name of the application
 #   - the name of the application/file is an entrypoint XXX
 #   - python3.X+ with ensurepip
 #   - a requirements.txt file next to the appenv file
@@ -130,15 +130,18 @@ def _prepare(meta_args):
 
 
 def run(argv, meta_args):
-    env_dir = _prepare(meta_args)
-    # Allow called programs to find out where the wrapper lives
     base = os.path.abspath(os.path.dirname(__file__))
     os.environ['APPENV_BASEDIR'] = base
     os.chdir(base)
+    env_dir = _prepare(meta_args)
+    # Allow called programs to find out where the wrapper lives
     os.execv(os.path.join(env_dir, 'bin', meta_args.appname), argv)
 
 
 def python(argv, meta_args):
+    base = os.path.abspath(os.path.dirname(__file__))
+    os.environ['APPENV_BASEDIR'] = base
+    os.chdir(base)
     env_dir = _prepare(meta_args)
     interpreter = os.path.join(env_dir, 'bin', 'python')
     argv[0] = interpreter
