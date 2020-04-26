@@ -69,7 +69,7 @@ def update_lockfile(argv, meta_args):
     print('Installing packages ...')
     cmd('{tmpdir}/bin/pip3 install -r requirements.txt'.format(tmpdir=tmpdir))
     result = cmd('{tmpdir}/bin/pip3 freeze'.format(tmpdir=tmpdir))
-    with open('requirements.lock', 'wb') as f:
+    with open(os.path.join(meta_args.base, 'requirements.lock'), 'wb') as f:
         f.write(result)
     cmd('rm -rf {tmpdir}'.format(tmpdir=tmpdir))
 
@@ -80,7 +80,6 @@ def _prepare(meta_args):
     # - when to clean up old versions? keep like one or two old revisions?
     # - enumerate the revisions and just copy the requirements.txt, check
     #   for ones that are clean or rebuild if necessary
-
     if meta_args.unclean:
         print('Running unclean installation from requirements.txt')
         env_dir = os.path.join(meta_args.appenvdir, 'unclean')
@@ -130,21 +129,19 @@ def _prepare(meta_args):
 
 
 def run(argv, meta_args):
-    base = os.path.abspath(os.path.dirname(__file__))
-    os.environ['APPENV_BASEDIR'] = base
-    os.chdir(base)
+    os.chdir(meta_args.base)
     env_dir = _prepare(meta_args)
     # Allow called programs to find out where the wrapper lives
+    os.environ['APPENV_BASEDIR'] = meta_args.base
     os.execv(os.path.join(env_dir, 'bin', meta_args.appname), argv)
 
 
 def python(argv, meta_args):
-    base = os.path.abspath(os.path.dirname(__file__))
-    os.environ['APPENV_BASEDIR'] = base
-    os.chdir(base)
+    os.chdir(meta_args.base)
     env_dir = _prepare(meta_args)
     interpreter = os.path.join(env_dir, 'bin', 'python')
     argv[0] = interpreter
+    os.environ['APPENV_BASEDIR'] = meta_args.base
     os.execv(interpreter, argv)
 
 
@@ -218,6 +215,8 @@ def main():
     meta_parser.add_argument(
         '--appenvdir', default='.'+default_appname)
     meta_parser.set_defaults(func=run)
+    meta_parser.add_argument(
+        '--base', default=os.path.abspath(os.path.dirname(__file__)))
 
     subparsers = meta_parser.add_subparsers()
     p = subparsers.add_parser(

@@ -16,4 +16,5 @@ def meta_args(tmpdir):
         pass
     m_args = Args()
     m_args.appenvdir = os.path.join(str(tmpdir), '.app')
+    m_args.base = str(tmpdir)
     return m_args
