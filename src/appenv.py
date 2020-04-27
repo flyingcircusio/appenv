@@ -25,6 +25,8 @@ import shutil
 import subprocess
 import sys
 import venv
+import tempfile
+import http.client
 
 
 def cmd(c, quiet=False):
@@ -40,6 +42,19 @@ def cmd(c, quiet=False):
         raise
 
 
+def get(host, path, f):
+    conn = http.client.HTTPSConnection(host)
+    conn.request('GET', path)
+    r1 = conn.getresponse()
+    assert r1.status == 200, (r1.status, host, path, r1.read()[:100])
+    chunk = r1.read(16*1024)
+    while chunk:
+        f.write(chunk)
+        chunk = r1.read(16*1024)
+    conn.close()
+
+
+
 def ensure_venv(target):
     if os.path.exists(os.path.join(target, 'bin', 'pip3')):
         # XXX Support probing the target whether it works properly and rebuild
@@ -47,7 +62,12 @@ def ensure_venv(target):
         return
 
     if os.path.exists(target):
+        print('Deleting unclean target)')
         cmd('rm -rf {target}'.format(target=target))
+
+
+    print('Creating venv ...')
+    venv.create(target, with_pip=False)
 
     try:
         # This is trying to detect whether we're on a proper Python stdlib
@@ -58,8 +78,35 @@ def ensure_venv(target):
     except ImportError:
         # Ok, lets unfuck this, if we can. May need privilege escalation 
         # at some point.
-        cmd('apt-get -y -q install python3-distutils python3-venv')
-    venv.create(target, with_pip=True)
+        # We could do: apt-get -y -q install python3-distutils python3-venv
+        # on some systems but it requires root and is specific to the debian
+        # fuckery. I decided to go a more sledge hammer route.
+
+        # XXX we can speed this up by storing this in ~/.appenv/overlay instead
+        # of doing the download for every venv we manage
+        print('Activating broken distutils/ensurepip stdlib workaround ...')
+        version = sys.version.split()[0]
+
+
+        tmp_base = tempfile.mkdtemp()
+        download = os.path.join(tmp_base, 'download.tar.gz')
+        with open(download, mode='wb') as f:
+            get('www.python.org', '/ftp/python/{v}/Python-{v}.tgz'.format(v=version), f)
+
+        cmd('tar xf {} -C {}'.format(download, tmp_base))
+
+        assert os.path.exists(os.path.join(tmp_base, 'Python-{}'.format(version)))
+        for module in ['ensurepip', 'distutils']:
+            print(module)
+            shutil.copytree(
+                os.path.join(tmp_base, 'Python-{}'.format(version), 'Lib', module),
+                os.path.join(target, 'lib', 'python{}.{}'.format(*sys.version_info[:2]), 'site-packages', module))
+
+        shutil.rmtree(tmp_base)
+
+
+    print('Ensuring pip ...')
+    cmd('{target}/bin/python -Im ensurepip --upgrade --default-pip'.format(target=target))
 
 
 def update_lockfile(argv, meta_args):
