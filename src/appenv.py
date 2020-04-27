@@ -88,7 +88,8 @@ def _prepare(meta_args):
         cmd('{env_dir}/bin/pip3 install -r requirements.txt --upgrade'.format(env_dir=env_dir))
     else:
         requirements = open('requirements.lock', 'rb').read()
-        env_hash = hashlib.new('sha256', requirements).hexdigest()
+        hash_content  = requirements + open(__file__, 'rb').read()
+        env_hash = hashlib.new('sha256', hash_content).hexdigest()
         env_dir = os.path.join(meta_args.appenvdir, env_hash)
 
         whitelist = set([env_dir, os.path.join(meta_args.appenvdir, 'unclean')])
