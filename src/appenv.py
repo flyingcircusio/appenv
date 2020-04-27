@@ -80,7 +80,7 @@ def _prepare(meta_args):
     # - when to clean up old versions? keep like one or two old revisions?
     # - enumerate the revisions and just copy the requirements.txt, check
     #   for ones that are clean or rebuild if necessary
-    if meta_args.unclean:
+    if meta_args.unclean or not os.path.exists('requirements.lock'):
         print('Running unclean installation from requirements.txt')
         env_dir = os.path.join(meta_args.appenvdir, 'unclean')
         ensure_venv(env_dir)
@@ -199,9 +199,6 @@ def main():
             meta_argv.append(arg.replace('appenv-', ''))
         else:
             argv.append(arg)
-
-    if not os.path.exists('requirements.lock'):
-        meta_argv.insert(0, '-u')
 
     default_appname = os.path.splitext(os.path.basename(__file__))[0]
 
