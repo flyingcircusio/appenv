@@ -134,9 +134,12 @@ def _prepare(meta_args):
         print("Ensuring unclean install ...")
         cmd('{env_dir}/bin/pip3 install -r requirements.txt --upgrade'.format(env_dir=env_dir))
     else:
+        hash_content = []
         requirements = open('requirements.lock', 'rb').read()
-        hash_content  = requirements + open(__file__, 'rb').read()
-        env_hash = hashlib.new('sha256', hash_content).hexdigest()
+        hash_content.append(os.fsencode(os.path.realpath(sys.executable)))
+        hash_content.append(requirements)
+        hash_content.append(open(__file__, 'rb').read())
+        env_hash = hashlib.new('sha256', b''.join(hash_content)).hexdigest()
         env_dir = os.path.join(meta_args.appenvdir, env_hash)
 
         whitelist = set([env_dir, os.path.join(meta_args.appenvdir, 'unclean')])
