@@ -5,6 +5,8 @@ htmlcov/
 lib/
 pyvenv.cfg
 
+*.sublime-*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
