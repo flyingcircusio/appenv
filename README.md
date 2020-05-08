@@ -48,6 +48,19 @@ $ time ./ducker wikpedia
 
 ```
 
+## Using a specific version of Python
+
+By default `appenv` uses the default Python 3 interpreter available in your
+environment. If you want to use a specific version of Python you can 
+customize the `shebang` line of your application file:
+
+```
+#!/usr/bin/env python3.5
+...
+```
+
+AppEnv itself is tested against Python 3.4+.
+
 ## Learning more about appenv
 
 ```
