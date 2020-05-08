@@ -17,4 +17,5 @@ def meta_args(tmpdir):
     m_args = Args()
     m_args.appenvdir = os.path.join(str(tmpdir), '.app')
     m_args.base = str(tmpdir)
+    m_args.unclean = False
     return m_args
