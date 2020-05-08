@@ -87,26 +87,32 @@ def ensure_venv(target):
         print('Activating broken distutils/ensurepip stdlib workaround ...')
         version = sys.version.split()[0]
 
-
         tmp_base = tempfile.mkdtemp()
-        download = os.path.join(tmp_base, 'download.tar.gz')
-        with open(download, mode='wb') as f:
-            get('www.python.org', '/ftp/python/{v}/Python-{v}.tgz'.format(v=version), f)
+        try:
+            download = os.path.join(tmp_base, 'download.tar.gz')
+            with open(download, mode='wb') as f:
+                get('www.python.org', '/ftp/python/{v}/Python-{v}.tgz'.format(v=version), f)
 
-        cmd('tar xf {} -C {}'.format(download, tmp_base))
+            cmd('tar xf {} -C {}'.format(download, tmp_base))
 
-        assert os.path.exists(os.path.join(tmp_base, 'Python-{}'.format(version)))
-        for module in ['ensurepip', 'distutils']:
-            print(module)
-            shutil.copytree(
-                os.path.join(tmp_base, 'Python-{}'.format(version), 'Lib', module),
-                os.path.join(target, 'lib', 'python{}.{}'.format(*sys.version_info[:2]), 'site-packages', module))
+            assert os.path.exists(os.path.join(tmp_base, 'Python-{}'.format(version)))
+            for module in ['ensurepip', 'distutils']:
+                print(module)
+                shutil.copytree(
+                    os.path.join(tmp_base, 'Python-{}'.format(version), 'Lib', module),
+                    os.path.join(target, 'lib', 'python{}.{}'.format(*sys.version_info[:2]), 'site-packages', module))
 
-        shutil.rmtree(tmp_base)
-
+            # (always) prepend the site packages so we can actually have a fixed
+            # distutils installation.
+            python_maj_min = '.'.join(str(x) for x in sys.version_info[:2])
+            site_packages = os.path.abspath(f'{target}/lib/python{python_maj_min}/site-packages')
+            with open(f'{site_packages}/batou.pth', 'w') as f:
+                f.write(f'import sys; sys.path.insert(0, \'{site_packages}\')\n')
+        finally:
+            shutil.rmtree(tmp_base)
 
     print('Ensuring pip ...')
-    cmd('{target}/bin/python -Im ensurepip --upgrade --default-pip'.format(target=target))
+    cmd('{target}/bin/python -m ensurepip --upgrade --default-pip'.format(target=target))
 
 
 def update_lockfile(argv, meta_args):
