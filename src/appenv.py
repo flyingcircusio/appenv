@@ -29,12 +29,15 @@ import tempfile
 import http.client
 
 
-def cmd(c, quiet=False):
+def cmd(c, merge_stderr=True, quiet=False):
     # TODO revisit the cmd() architecture w/ python 3
     # XXX better IO management for interactive output and seeing original errors
     # and output at appropriate places ...
     try:
-        return subprocess.check_output([c], stderr=subprocess.STDOUT, shell=True)
+        kwargs = {'shell': True}
+        if merge_stderr:
+            kwargs['stderr'] = stderr=subprocess.STDOUT
+        return subprocess.check_output([c], **kwargs)
     except subprocess.CalledProcessError as e:
         if not quiet:
             print("{} returned with exit code {}".format(c, e.returncode))
@@ -122,7 +125,8 @@ def update_lockfile(argv, meta_args):
     ensure_venv(tmpdir)
     print('Installing packages ...')
     cmd('{tmpdir}/bin/pip3 install -r requirements.txt'.format(tmpdir=tmpdir))
-    result = cmd('{tmpdir}/bin/pip3 freeze'.format(tmpdir=tmpdir))
+    result = cmd('{tmpdir}/bin/pip3 freeze'.format(tmpdir=tmpdir),
+                 merge_stderr=False)
     with open(os.path.join(meta_args.base, 'requirements.lock'), 'wb') as f:
         f.write(result)
     cmd('rm -rf {tmpdir}'.format(tmpdir=tmpdir))

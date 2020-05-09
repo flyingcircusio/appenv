@@ -3,6 +3,7 @@ import os.path
 
 
 def test_new_venv(tmpdir):
+    tmpdir = str(tmpdir)
     appenv.ensure_venv(os.path.join(tmpdir, 'venv'))
     assert os.path.exists(os.path.join(tmpdir, 'venv', 'bin', 'pip3'))
     assert os.path.exists(os.path.join(tmpdir, 'venv', 'bin', 'python'))
@@ -16,6 +17,7 @@ def test_new_venv(tmpdir):
 
 
 def test_new_broken_venv_recreated(tmpdir):
+    tmpdir = str(tmpdir)
     appenv.ensure_venv(os.path.join(tmpdir, 'venv'))
     assert os.path.exists(os.path.join(tmpdir, 'venv', 'bin', 'pip3'))
     assert os.path.exists(os.path.join(tmpdir, 'venv', 'bin', 'python'))
