@@ -39,10 +39,9 @@ def cmd(c, merge_stderr=True, quiet=False):
             kwargs['stderr'] = stderr=subprocess.STDOUT
         return subprocess.check_output([c], **kwargs)
     except subprocess.CalledProcessError as e:
-        if not quiet:
-            print("{} returned with exit code {}".format(c, e.returncode))
-            print(e.output.decode('ascii'))
-        raise
+        print("{} returned with exit code {}".format(c, e.returncode))
+        print(e.output.decode('ascii'))
+        raise ValueError(e.output.decode('ascii'))
 
 
 def get(host, path, f):
@@ -68,6 +67,8 @@ def ensure_venv(target):
         cmd('rm -rf {target}'.format(target=target))
 
 
+    version = sys.version.split()[0]
+    python_maj_min = '.'.join(str(x) for x in sys.version_info[:2])
     print('Creating venv ...')
     venv.create(target, with_pip=False)
 
@@ -87,7 +88,6 @@ def ensure_venv(target):
         # XXX we can speed this up by storing this in ~/.appenv/overlay instead
         # of doing the download for every venv we manage
         print('Activating broken distutils/ensurepip stdlib workaround ...')
-        version = sys.version.split()[0]
 
         tmp_base = tempfile.mkdtemp()
         try:
@@ -106,17 +106,22 @@ def ensure_venv(target):
 
             # (always) prepend the site packages so we can actually have a fixed
             # distutils installation.
-            python_maj_min = '.'.join(str(x) for x in sys.version_info[:2])
             site_packages = os.path.abspath(
                 os.path.join(target, 'lib', 'python' + python_maj_min, 'site-packages'))
             with open(os.path.join(site_packages, 'batou.pth'), 'w') as f:
                 f.write(
                     'import sys; sys.path.insert(0, \'{}\')\n'.format(site_packages))
+
         finally:
             shutil.rmtree(tmp_base)
 
     print('Ensuring pip ...')
-    cmd('{target}/bin/python -m ensurepip --upgrade --default-pip'.format(target=target))
+    cmd('{target}/bin/python -m ensurepip --default-pip'.format(target=target))
+    if python_maj_min == '3.4':
+        # Last version of Pip supporting Python 3.4
+        cmd('{target}/bin/python -m pip install --upgrade "pip<19.2"'.format(target=target))
+    else:
+        cmd('{target}/bin/python -m pip install --upgrade pip'.format(target=target))
 
 
 def update_lockfile(argv, meta_args):
@@ -124,8 +129,8 @@ def update_lockfile(argv, meta_args):
     tmpdir = os.path.join(meta_args.appenvdir, 'updatelock')
     ensure_venv(tmpdir)
     print('Installing packages ...')
-    cmd('{tmpdir}/bin/pip3 install -r requirements.txt'.format(tmpdir=tmpdir))
-    result = cmd('{tmpdir}/bin/pip3 freeze'.format(tmpdir=tmpdir),
+    cmd('{tmpdir}/bin/python -m pip install -r requirements.txt'.format(tmpdir=tmpdir))
+    result = cmd('{tmpdir}/bin/python -m pip freeze'.format(tmpdir=tmpdir),
                  merge_stderr=False)
     with open(os.path.join(meta_args.base, 'requirements.lock'), 'wb') as f:
         f.write(result)
@@ -143,7 +148,7 @@ def _prepare(meta_args):
         env_dir = os.path.join(meta_args.appenvdir, 'unclean')
         ensure_venv(env_dir)
         print("Ensuring unclean install ...")
-        cmd('{env_dir}/bin/pip3 install -r requirements.txt --upgrade'.format(env_dir=env_dir))
+        cmd('{env_dir}/bin/python -m pip install -r requirements.txt --upgrade'.format(env_dir=env_dir))
     else:
         hash_content = []
         requirements = open('requirements.lock', 'rb').read()
@@ -180,14 +185,12 @@ def _prepare(meta_args):
                 f.write(requirements)
 
             print('Installing {meta_args.appname} ...'.format(meta_args=meta_args))
-            cmd('{env_dir}/bin/pip3 install --no-deps -r {env_dir}/requirements.lock'.format(env_dir=env_dir))
+            cmd('{env_dir}/bin/python -m pip install --no-deps -r {env_dir}/requirements.lock'.format(env_dir=env_dir))
 
-            cmd('{env_dir}/bin/pip3 check'.format(env_dir=env_dir))
+            cmd('{env_dir}/bin/python -m pip check'.format(env_dir=env_dir))
 
             with open(os.path.join(env_dir, 'appenv.ready'), 'w') as f:
                 f.write('Ready or not, here I come, you can\'t hide\n')
-
-    print(os.listdir('{env_dir}/bin'.format(env_dir=env_dir)))
 
     return env_dir
 
@@ -234,10 +237,11 @@ def init(argv, meta_args):
         os.makedirs(target)
     print()
     print('Creating appenv setup in {} ...'.format(target))
+    with open(__file__, 'rb') as bootstrap_file:
+        bootstrap_data = bootstrap_file.read()
     os.chdir(target)
     with open(command, 'wb') as new_command_file:
-        with open(__file__, 'rb') as bootstrap_file:
-            new_command_file.write(bootstrap_file.read())
+        new_command_file.write(bootstrap_data)
     os.chmod(command, 0o755)
     with open('requirements.txt', 'w') as requirements_txt:
         requirements_txt.write(dependency+'\n')
