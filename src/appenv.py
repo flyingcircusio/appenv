@@ -54,7 +54,6 @@ def get(host, path, f):
     conn.close()
 
 
-
 def ensure_venv(target):
     if os.path.exists(os.path.join(target, 'bin', 'pip3')):
         # XXX Support probing the target whether it works properly and rebuild
