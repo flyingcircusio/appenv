@@ -183,6 +183,8 @@ def _prepare(meta_args):
             with open(os.path.join(env_dir, 'appenv.ready'), 'w') as f:
                 f.write('Ready or not, here I come, you can\'t hide\n')
 
+    print(os.listdir('{env_dir}/bin'.format(env_dir=env_dir)))
+
     return env_dir
 
 
