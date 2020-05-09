@@ -5,8 +5,8 @@ import os.path
 @pytest.yield_fixture
 def workdir(tmpdir):
     old = os.getcwd()
-    os.chdir(tmpdir)
-    yield tmpdir
+    os.chdir(str(tmpdir))
+    yield str(tmpdir)
     os.chdir(old)
 
 

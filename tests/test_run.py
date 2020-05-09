@@ -21,7 +21,7 @@ def test_bootstrap_and_run_with_lockfile(meta_args, workdir, monkeypatch):
 
     appenv.init([], meta_args)
     appenv.update_lockfile([], meta_args)
-    os.chdir(workdir / 'batou')
+    os.chdir(os.path.join(workdir, 'batou'))
     with open('batou', 'r') as f:
         # Ensure we're called with the Python-interpreter-under-test.
         script = '#!{}\n{}'.format(sys.executable, f.read())
@@ -40,7 +40,7 @@ def test_bootstrap_and_run_python_with_lockfile(meta_args, workdir,
 
     appenv.init([], meta_args)
     appenv.update_lockfile([], meta_args)
-    os.chdir(workdir / 'batou')
+    os.chdir(os.path.join(workdir, 'batou'))
     with open('batou', 'r') as f:
         # Ensure we're called with the Python-interpreter-under-test.
         script = '#!{}\n{}'.format(sys.executable, f.read())
