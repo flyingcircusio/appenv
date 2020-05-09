@@ -104,9 +104,11 @@ def ensure_venv(target):
             # (always) prepend the site packages so we can actually have a fixed
             # distutils installation.
             python_maj_min = '.'.join(str(x) for x in sys.version_info[:2])
-            site_packages = os.path.abspath(f'{target}/lib/python{python_maj_min}/site-packages')
-            with open(f'{site_packages}/batou.pth', 'w') as f:
-                f.write(f'import sys; sys.path.insert(0, \'{site_packages}\')\n')
+            site_packages = os.path.abspath(
+                os.path.join(target, 'lib', 'python' + python_maj_min, 'site-packages'))
+            with open(os.path.join(site_packages, 'batou.pth'), 'w') as f:
+                f.write(
+                    'import sys; sys.path.insert(0, \'{}\')\n'.format(site_packages))
         finally:
             shutil.rmtree(tmp_base)
 
