@@ -155,7 +155,7 @@ def _prepare(meta_args):
         hash_content.append(os.fsencode(os.path.realpath(sys.executable)))
         hash_content.append(requirements)
         hash_content.append(open(__file__, 'rb').read())
-        env_hash = hashlib.new('sha256', b''.join(hash_content)).hexdigest()
+        env_hash = hashlib.new('sha256', b''.join(hash_content)).hexdigest()[:8]
         env_dir = os.path.join(meta_args.appenvdir, env_hash)
 
         whitelist = set([env_dir, os.path.join(meta_args.appenvdir, 'unclean')])
