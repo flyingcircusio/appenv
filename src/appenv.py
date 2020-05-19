@@ -195,7 +195,7 @@ def _prepare(meta_args):
     return env_dir
 
 
-def run(argv, meta_args):
+def run_app(argv, meta_args):
     os.chdir(meta_args.base)
     env_dir = _prepare(meta_args)
     # Allow called programs to find out where the wrapper lives
@@ -204,12 +204,17 @@ def run(argv, meta_args):
 
 
 def python(argv, meta_args):
+    meta_args.command = 'python'
+    run(argv, meta_args)
+
+
+def run(argv, meta_args):
     os.chdir(meta_args.base)
     env_dir = _prepare(meta_args)
-    interpreter = os.path.join(env_dir, 'bin', 'python')
-    argv[0] = interpreter
+    cmd = os.path.join(env_dir, 'bin', meta_args.command)
+    argv[0] = cmd
     os.environ['APPENV_BASEDIR'] = meta_args.base
-    os.execv(interpreter, argv)
+    os.execv(cmd, argv)
 
 
 def reset(argv, meta_args):
@@ -261,9 +266,15 @@ def main():
     argv = []
 
     # Preprocess sys.arv
-    for arg in sys.argv:
+    sys_argv = list(sys.argv)
+    while sys_argv:
+        arg = sys_argv.pop(0)
         if 'appenv-' in arg:
-            meta_argv.append(arg.replace('appenv-', ''))
+            meta_arg = arg.replace('appenv-', '')
+            meta_argv.append(meta_arg)
+            if meta_arg == 'run':
+                # Hack, hack.
+                meta_argv.append(sys_argv.pop(0))
         else:
             argv.append(arg)
 
@@ -279,7 +290,7 @@ def main():
         '--appname', default=default_appname)
     meta_parser.add_argument(
         '--appenvdir', default='.'+default_appname)
-    meta_parser.set_defaults(func=run)
+    meta_parser.set_defaults(func=run_app)
     meta_parser.add_argument(
         '--base', default=os.path.abspath(os.path.dirname(__file__)))
 
@@ -299,6 +310,11 @@ def main():
     p = subparsers.add_parser(
         'python', help='Spawn the embedded Python interpreter REPL')
     p.set_defaults(func=python)
+
+    p = subparsers.add_parser(
+        'run', help='Run a command from the venv\'s bin/ directory')
+    p.add_argument('command')
+    p.set_defaults(func=run)
 
     meta_args = meta_parser.parse_args(meta_argv)
 
