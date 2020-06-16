@@ -74,16 +74,16 @@ def ensure_venv(target):
 
     try:
         # This is trying to detect whether we're on a proper Python stdlib
-        # or on a fucked up debian. See various StackOverflow questions about
+        # or on a broken Debian. See various StackOverflow questions about
         # this.
         import distutils.util
         import ensurepip
     except ImportError:
-        # Ok, lets unfuck this, if we can. May need privilege escalation 
+        # Okay, lets repair this, if we can. May need privilege escalation
         # at some point.
         # We could do: apt-get -y -q install python3-distutils python3-venv
-        # on some systems but it requires root and is specific to the debian
-        # fuckery. I decided to go a more sledge hammer route.
+        # on some systems but it requires root and is specific to Debian.
+        # I decided to go a more sledge hammer route.
 
         # XXX we can speed this up by storing this in ~/.appenv/overlay instead
         # of doing the download for every venv we manage
