@@ -304,6 +304,15 @@ def ensure_newest_python():
         if python == current_python:
             # found best python and we're already running as it
             break
+        # Try whether this Python works
+        try:
+            subprocess.check_call(
+                [python, "-c", "print(1)"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except subprocess.CalledProcessError:
+            continue
         argv = [os.path.basename(python)] + sys.argv
         os.environ["APPENV_NEWEST_PYTHON"] = python
         os.execv(python, argv)
