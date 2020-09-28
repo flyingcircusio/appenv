@@ -32,7 +32,9 @@ def test_bootstrap_and_run_with_lockfile(meta_args, workdir, monkeypatch):
     assert output.startswith(b"usage: Ducker")
 
 
-def test_bootstrap_and_run_python_with_lockfile(meta_args, workdir, monkeypatch):
+def test_bootstrap_and_run_python_with_lockfile(
+    meta_args, workdir, monkeypatch
+):
     monkeypatch.setattr("sys.stdin", io.StringIO("ducker\nducker==2.0.1\n\n"))
     meta_args.appenvdir = os.path.join(workdir, "ducker", ".ducker")
     meta_args.base = os.path.join(workdir, "ducker")
@@ -47,7 +49,9 @@ def test_bootstrap_and_run_python_with_lockfile(meta_args, workdir, monkeypatch)
     with open("ducker", "w") as f:
         f.write(script)
 
-    output = subprocess.check_output('./ducker appenv-python -c "print(1)"', shell=True)
+    output = subprocess.check_output(
+        './ducker appenv-python -c "print(1)"', shell=True
+    )
     assert output == b"1\n"
 
 

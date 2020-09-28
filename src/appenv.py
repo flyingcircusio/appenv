@@ -100,11 +100,15 @@ def ensure_venv(target):
 
             cmd("tar xf {} -C {}".format(download, tmp_base))
 
-            assert os.path.exists(os.path.join(tmp_base, "Python-{}".format(version)))
+            assert os.path.exists(
+                os.path.join(tmp_base, "Python-{}".format(version))
+            )
             for module in ["ensurepip", "distutils"]:
                 print(module)
                 shutil.copytree(
-                    os.path.join(tmp_base, "Python-{}".format(version), "Lib", module),
+                    os.path.join(
+                        tmp_base, "Python-{}".format(version), "Lib", module
+                    ),
                     os.path.join(
                         target,
                         "lib",
@@ -117,16 +121,24 @@ def ensure_venv(target):
             # (always) prepend the site packages so we can actually have a fixed
             # distutils installation.
             site_packages = os.path.abspath(
-                os.path.join(target, "lib", "python" + python_maj_min, "site-packages")
+                os.path.join(
+                    target, "lib", "python" + python_maj_min, "site-packages"
+                )
             )
             with open(os.path.join(site_packages, "batou.pth"), "w") as f:
-                f.write("import sys; sys.path.insert(0, '{}')\n".format(site_packages))
+                f.write(
+                    "import sys; sys.path.insert(0, '{}')\n".format(
+                        site_packages
+                    )
+                )
 
         finally:
             shutil.rmtree(tmp_base)
 
     print("Ensuring pip ...")
-    cmd("{target}/bin/python -m ensurepip --default-pip".format(target=target))
+    cmd(
+        "{target}/bin/python -m ensurepip --default-pip".format(target=target)
+    )
     if python_maj_min == "3.4":
         # Last version of Pip supporting Python 3.4
         cmd(
@@ -135,7 +147,11 @@ def ensure_venv(target):
             )
         )
     else:
-        cmd("{target}/bin/python -m pip install --upgrade pip".format(target=target))
+        cmd(
+            "{target}/bin/python -m pip install --upgrade pip".format(
+                target=target
+            )
+        )
 
 
 def update_lockfile(argv, meta_args):
@@ -143,9 +159,14 @@ def update_lockfile(argv, meta_args):
     tmpdir = os.path.join(meta_args.appenvdir, "updatelock")
     ensure_venv(tmpdir)
     print("Installing packages ...")
-    cmd("{tmpdir}/bin/python -m pip install -r requirements.txt".format(tmpdir=tmpdir))
+    cmd(
+        "{tmpdir}/bin/python -m pip install -r requirements.txt".format(
+            tmpdir=tmpdir
+        )
+    )
     result = cmd(
-        "{tmpdir}/bin/python -m pip freeze".format(tmpdir=tmpdir), merge_stderr=False
+        "{tmpdir}/bin/python -m pip freeze".format(tmpdir=tmpdir),
+        merge_stderr=False,
     )
     with open(os.path.join(meta_args.base, "requirements.lock"), "wb") as f:
         f.write(result)
@@ -174,11 +195,17 @@ def _prepare(meta_args):
         hash_content.append(os.fsencode(os.path.realpath(sys.executable)))
         hash_content.append(requirements)
         hash_content.append(open(__file__, "rb").read())
-        env_hash = hashlib.new("sha256", b"".join(hash_content)).hexdigest()[:8]
+        env_hash = hashlib.new("sha256", b"".join(hash_content)).hexdigest()[
+            :8
+        ]
         env_dir = os.path.join(meta_args.appenvdir, env_hash)
 
-        whitelist = set([env_dir, os.path.join(meta_args.appenvdir, "unclean")])
-        for path in glob.glob("{meta_args.appenvdir}/*".format(meta_args=meta_args)):
+        whitelist = set(
+            [env_dir, os.path.join(meta_args.appenvdir, "unclean")]
+        )
+        for path in glob.glob(
+            "{meta_args.appenvdir}/*".format(meta_args=meta_args)
+        ):
             if not path in whitelist:
                 print("Removing expired path: {path} ...".format(path=path))
                 if not os.path.isdir(path):
@@ -191,7 +218,9 @@ def _prepare(meta_args):
             # to running services, but that isn't what we're using it for at the
             # moment
             try:
-                if not os.path.exists("{env_dir}/appenv.ready".format(env_dir=env_dir)):
+                if not os.path.exists(
+                    "{env_dir}/appenv.ready".format(env_dir=env_dir)
+                ):
                     raise Exception()
             except Exception:
                 print("Existing envdir not consistent, deleting")
@@ -203,7 +232,11 @@ def _prepare(meta_args):
             with open(os.path.join(env_dir, "requirements.lock"), "wb") as f:
                 f.write(requirements)
 
-            print("Installing {meta_args.appname} ...".format(meta_args=meta_args))
+            print(
+                "Installing {meta_args.appname} ...".format(
+                    meta_args=meta_args
+                )
+            )
             cmd(
                 "{env_dir}/bin/python -m pip install --no-deps -r {env_dir}/requirements.lock".format(
                     env_dir=env_dir
@@ -261,7 +294,9 @@ def init(argv, meta_args):
         dependency = command
     workdir = os.getcwd()
     default_target = os.path.join(workdir, command)
-    target = input("Where should we create this? [{}] ".format(default_target)).strip()
+    target = input(
+        "Where should we create this? [{}] ".format(default_target)
+    ).strip()
     if target:
         target = os.path.join(workdir, target)
     else:
