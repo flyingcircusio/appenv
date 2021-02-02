@@ -14,19 +14,18 @@
 # - provide a `clone` meta command to create a new project based on this one
 #   maybe use an entry point to allow further initialisation of the clone.
 
-
 import argparse
 import glob
 import hashlib
+import http.client
 import os
 import os.path
 import shlex
 import shutil
 import subprocess
 import sys
-import venv
 import tempfile
-import http.client
+import venv
 
 
 def cmd(c, merge_stderr=True, quiet=False):
@@ -92,66 +91,43 @@ def ensure_venv(target):
         try:
             download = os.path.join(tmp_base, "download.tar.gz")
             with open(download, mode="wb") as f:
-                get(
-                    "www.python.org",
-                    "/ftp/python/{v}/Python-{v}.tgz".format(v=version),
-                    f,
-                )
+                get("www.python.org",
+                    "/ftp/python/{v}/Python-{v}.tgz".format(v=version), f)
 
             cmd("tar xf {} -C {}".format(download, tmp_base))
 
             assert os.path.exists(
-                os.path.join(tmp_base, "Python-{}".format(version))
-            )
+                os.path.join(tmp_base, "Python-{}".format(version)))
             for module in ["ensurepip", "distutils"]:
                 print(module)
                 shutil.copytree(
-                    os.path.join(
-                        tmp_base, "Python-{}".format(version), "Lib", module
-                    ),
-                    os.path.join(
-                        target,
-                        "lib",
-                        "python{}.{}".format(*sys.version_info[:2]),
-                        "site-packages",
-                        module,
-                    ),
-                )
+                    os.path.join(tmp_base, "Python-{}".format(version), "Lib",
+                                 module),
+                    os.path.join(target, "lib",
+                                 "python{}.{}".format(*sys.version_info[:2]),
+                                 "site-packages", module))
 
             # (always) prepend the site packages so we can actually have a fixed
             # distutils installation.
             site_packages = os.path.abspath(
-                os.path.join(
-                    target, "lib", "python" + python_maj_min, "site-packages"
-                )
-            )
+                os.path.join(target, "lib", "python" + python_maj_min,
+                             "site-packages"))
             with open(os.path.join(site_packages, "batou.pth"), "w") as f:
-                f.write(
-                    "import sys; sys.path.insert(0, '{}')\n".format(
-                        site_packages
-                    )
-                )
+                f.write("import sys; sys.path.insert(0, '{}')\n".format(
+                    site_packages))
 
         finally:
             shutil.rmtree(tmp_base)
 
     print("Ensuring pip ...")
-    cmd(
-        "{target}/bin/python -m ensurepip --default-pip".format(target=target)
-    )
+    cmd("{target}/bin/python -m ensurepip --default-pip".format(target=target))
     if python_maj_min == "3.4":
         # Last version of Pip supporting Python 3.4
-        cmd(
-            '{target}/bin/python -m pip install --upgrade "pip<19.2"'.format(
-                target=target
-            )
-        )
+        cmd('{target}/bin/python -m pip install --upgrade "pip<19.2"'.format(
+            target=target))
     else:
-        cmd(
-            "{target}/bin/python -m pip install --upgrade pip".format(
-                target=target
-            )
-        )
+        cmd("{target}/bin/python -m pip install --upgrade pip".format(
+            target=target))
 
 
 def update_lockfile(argv, meta_args):
@@ -159,17 +135,49 @@ def update_lockfile(argv, meta_args):
     tmpdir = os.path.join(meta_args.appenvdir, "updatelock")
     ensure_venv(tmpdir)
     print("Installing packages ...")
-    cmd(
-        "{tmpdir}/bin/python -m pip install -r requirements.txt".format(
-            tmpdir=tmpdir
-        )
-    )
-    result = cmd(
-        "{tmpdir}/bin/python -m pip freeze".format(tmpdir=tmpdir),
-        merge_stderr=False,
-    )
-    with open(os.path.join(meta_args.base, "requirements.lock"), "wb") as f:
-        f.write(result)
+    cmd("{tmpdir}/bin/python -m pip install -r requirements.txt".format(
+        tmpdir=tmpdir))
+
+    # Hack because we might not have pkg_resources, but the venv should
+    tmp_paths = cmd(
+        "{tmpdir}/bin/python -c 'import sys; print(\"\\n\".join(sys.path))'".
+        format(tmpdir=tmpdir),
+        merge_stderr=False).decode(sys.getfilesystemencoding())
+    for line in tmp_paths.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        sys.path.append(line)
+    import pkg_resources
+
+    result = cmd("{tmpdir}/bin/python -m pip freeze".format(tmpdir=tmpdir),
+                 merge_stderr=False).decode('ascii')
+    pinned_versions = {}
+    for line in result.splitlines():
+        spec = list(pkg_resources.parse_requirements(line))[0]
+        pinned_versions[spec.project_name] = spec
+    requested_versions = {}
+    with open('requirements.txt') as f:
+        for line in f.readlines():
+            spec = list(pkg_resources.parse_requirements(line))[0]
+            requested_versions[spec.project_name] = spec
+
+    final_versions = {}
+    for spec in requested_versions.values():
+        # Pick versions with URLs to ensure we don't get the screwed up
+        # results from pip freeze.
+        if spec.url:
+            final_versions[spec.project_name] = spec
+    for spec in pinned_versions.values():
+        # Ignore versions we already picked
+        if spec.project_name in final_versions:
+            continue
+        final_versions[spec.project_name] = spec
+    lines = [str(spec) for spec in final_versions.values()]
+    lines.sort()
+    with open(os.path.join(meta_args.base, "requirements.lock"), "w") as f:
+        f.write('\n'.join(lines))
+        f.write('\n')
     cmd("rm -rf {tmpdir}".format(tmpdir=tmpdir))
 
 
@@ -184,28 +192,22 @@ def _prepare(meta_args):
         env_dir = os.path.join(meta_args.appenvdir, "unclean")
         ensure_venv(env_dir)
         print("Ensuring unclean install ...")
-        cmd(
-            "{env_dir}/bin/python -m pip install -r requirements.txt --upgrade".format(
-                env_dir=env_dir
-            )
-        )
+        cmd("{env_dir}/bin/python -m pip install -r requirements.txt --upgrade"
+            .format(env_dir=env_dir))
     else:
         hash_content = []
         requirements = open("requirements.lock", "rb").read()
         hash_content.append(os.fsencode(os.path.realpath(sys.executable)))
         hash_content.append(requirements)
         hash_content.append(open(__file__, "rb").read())
-        env_hash = hashlib.new("sha256", b"".join(hash_content)).hexdigest()[
-            :8
-        ]
+        env_hash = hashlib.new("sha256",
+                               b"".join(hash_content)).hexdigest()[:8]
         env_dir = os.path.join(meta_args.appenvdir, env_hash)
 
         whitelist = set(
-            [env_dir, os.path.join(meta_args.appenvdir, "unclean")]
-        )
+            [env_dir, os.path.join(meta_args.appenvdir, "unclean")])
         for path in glob.glob(
-            "{meta_args.appenvdir}/*".format(meta_args=meta_args)
-        ):
+                "{meta_args.appenvdir}/*".format(meta_args=meta_args)):
             if not path in whitelist:
                 print("Removing expired path: {path} ...".format(path=path))
                 if not os.path.isdir(path):
@@ -219,8 +221,7 @@ def _prepare(meta_args):
             # moment
             try:
                 if not os.path.exists(
-                    "{env_dir}/appenv.ready".format(env_dir=env_dir)
-                ):
+                        "{env_dir}/appenv.ready".format(env_dir=env_dir)):
                     raise Exception()
             except Exception:
                 print("Existing envdir not consistent, deleting")
@@ -232,16 +233,10 @@ def _prepare(meta_args):
             with open(os.path.join(env_dir, "requirements.lock"), "wb") as f:
                 f.write(requirements)
 
-            print(
-                "Installing {meta_args.appname} ...".format(
-                    meta_args=meta_args
-                )
-            )
-            cmd(
-                "{env_dir}/bin/python -m pip install --no-deps -r {env_dir}/requirements.lock".format(
-                    env_dir=env_dir
-                )
-            )
+            print("Installing {meta_args.appname} ...".format(
+                meta_args=meta_args))
+            cmd("{env_dir}/bin/python -m pip install --no-deps -r {env_dir}/requirements.lock"
+                .format(env_dir=env_dir))
 
             cmd("{env_dir}/bin/python -m pip check".format(env_dir=env_dir))
 
@@ -274,11 +269,8 @@ def run(argv, meta_args):
 
 
 def reset(argv, meta_args):
-    print(
-        "Resetting ALL application environments in {appenvdir} ...".format(
-            appenvdir=meta_args.appenvdir
-        )
-    )
+    print("Resetting ALL application environments in {appenvdir} ...".format(
+        appenvdir=meta_args.appenvdir))
     cmd("rm -rf {appenvdir}".format(appenvdir=meta_args.appenvdir))
 
 
@@ -288,15 +280,14 @@ def init(argv, meta_args):
     while not command:
         command = input("What should the command be named? ").strip()
     dependency = input(
-        "What is the main dependency as found on PyPI? [{}] ".format(command)
-    ).strip()
+        "What is the main dependency as found on PyPI? [{}] ".format(
+            command)).strip()
     if not dependency:
         dependency = command
     workdir = os.getcwd()
     default_target = os.path.join(workdir, command)
     target = input(
-        "Where should we create this? [{}] ".format(default_target)
-    ).strip()
+        "Where should we create this? [{}] ".format(default_target)).strip()
     if target:
         target = os.path.join(workdir, target)
     else:
@@ -315,11 +306,8 @@ def init(argv, meta_args):
     with open("requirements.txt", "w") as requirements_txt:
         requirements_txt.write(dependency + "\n")
     print()
-    print(
-        "Done. You can now `cd {}` and call `./{}` to bootstrap and run it.".format(
-            os.path.relpath(target, workdir), command
-        )
-    )
+    print("Done. You can now `cd {}` and call `./{}` to bootstrap and run it.".
+          format(os.path.relpath(target, workdir), command))
 
 
 def ensure_newest_python():
@@ -341,11 +329,9 @@ def ensure_newest_python():
             break
         # Try whether this Python works
         try:
-            subprocess.check_call(
-                [python, "-c", "print(1)"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            subprocess.check_call([python, "-c", "print(1)"],
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL)
         except subprocess.CalledProcessError:
             continue
         argv = [os.path.basename(python)] + sys.argv
@@ -383,19 +369,17 @@ def main():
 
     # Parse the appenv arguments
     meta_parser = argparse.ArgumentParser()
-    meta_parser.add_argument(
-        "-u",
-        "--unclean",
-        action="store_true",
-        help="Use an unclean working environment.",
-    )
+    meta_parser.add_argument("-u",
+                             "--unclean",
+                             action="store_true",
+                             help="Use an unclean working environment.")
 
     meta_parser.add_argument("--appname", default=default_appname)
     meta_parser.add_argument("--appenvdir", default="." + default_appname)
     meta_parser.set_defaults(func=run_app)
-    meta_parser.add_argument(
-        "--base", default=os.path.abspath(os.path.dirname(__file__))
-    )
+    meta_parser.add_argument("--base",
+                             default=os.path.abspath(
+                                 os.path.dirname(__file__)))
 
     subparsers = meta_parser.add_subparsers()
     p = subparsers.add_parser("update-lockfile", help="Update the lock file.")
@@ -408,13 +392,11 @@ def main():
     p.set_defaults(func=reset)
 
     p = subparsers.add_parser(
-        "python", help="Spawn the embedded Python interpreter REPL"
-    )
+        "python", help="Spawn the embedded Python interpreter REPL")
     p.set_defaults(func=python)
 
     p = subparsers.add_parser(
-        "run", help="Run a command from the venv's bin/ directory"
-    )
+        "run", help="Run a command from the venv's bin/ directory")
     p.add_argument("command")
     p.set_defaults(func=run)
 
