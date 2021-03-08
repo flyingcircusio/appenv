@@ -1,43 +1,54 @@
-import appenv
-import os
 import io
+import os
+
+import appenv
 
 
-def test_init(meta_args, workdir, monkeypatch):
+def test_init(workdir, monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO("ducker\n\n\n"))
-    appenv.init([], meta_args)
-    assert os.path.exists(os.path.join(workdir, "ducker"))
-    with open(os.path.join(workdir, "ducker", "ducker")) as f:
+
+    assert not os.path.exists(os.path.join(workdir, "ducker"))
+
+    env = appenv.AppEnv(os.path.join(workdir, 'ducker'))
+    env.init()
+
+    assert os.readlink(os.path.join(workdir, "ducker", "ducker")) == 'appenv'
+
+    with open(os.path.join(workdir, "ducker", "appenv")) as f:
         ducker_appenv = f.read()
     with open(appenv.__file__) as f:
         original_appenv = f.read()
+    assert ducker_appenv == original_appenv
 
     with open(os.path.join(workdir, "ducker", "requirements.txt")) as f:
         requirements = f.read()
 
     assert requirements == "ducker\n"
-    assert ducker_appenv == original_appenv
 
     # calling it again doesn't break:
     monkeypatch.setattr("sys.stdin", io.StringIO("ducker\n\n\n"))
+    env.init()
 
-    os.chdir(workdir)
-    assert os.path.exists(os.path.join(workdir, "ducker"))
-    with open(os.path.join(workdir, "ducker", "ducker")) as f:
+    assert os.readlink(os.path.join(workdir, "ducker", "ducker")) == 'appenv'
+
+    with open(os.path.join(workdir, "ducker", "appenv")) as f:
         ducker_appenv = f.read()
     with open(appenv.__file__) as f:
         original_appenv = f.read()
+    assert ducker_appenv == original_appenv
 
     with open(os.path.join(workdir, "ducker", "requirements.txt")) as f:
         requirements = f.read()
 
     assert requirements == "ducker\n"
-    assert ducker_appenv == original_appenv
 
 
-def test_init_explicit_target(meta_args, workdir, monkeypatch):
+def test_init_explicit_target(workdir, monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO("ducker\n\nbaz\n"))
-    appenv.init([], meta_args)
+
+    env = appenv.AppEnv(os.path.join(workdir, 'ducker'))
+    env.init()
+
     assert os.path.exists(os.path.join(workdir, "baz"))
     with open(os.path.join(workdir, "baz", "ducker")) as f:
         ducker_appenv = f.read()
@@ -51,9 +62,12 @@ def test_init_explicit_target(meta_args, workdir, monkeypatch):
     assert ducker_appenv == original_appenv
 
 
-def test_init_explicit_package_and_target(meta_args, workdir, monkeypatch):
+def test_init_explicit_package_and_target(workdir, monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO("foo\nbar\nbaz\n"))
-    appenv.init([], meta_args)
+
+    env = appenv.AppEnv(os.path.join(workdir, 'ducker'))
+    env.init()
+
     assert os.path.exists(os.path.join(workdir, "baz"))
     with open(os.path.join(workdir, "baz", "foo")) as f:
         ducker_appenv = f.read()
