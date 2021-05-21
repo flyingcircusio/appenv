@@ -362,15 +362,22 @@ class AppEnv(object):
             sys.path.append(line)
         import pkg_resources
 
+        extra_specs = []
         result = cmd("{tmpdir}/bin/python -m pip freeze".format(tmpdir=tmpdir),
                      merge_stderr=False).decode('ascii')
         pinned_versions = {}
         for line in result.splitlines():
+            if line.strip().startswith('-e '):
+                # We'd like to pick up the original -e statement here.
+                continue
             spec = list(pkg_resources.parse_requirements(line))[0]
             pinned_versions[spec.project_name] = spec
         requested_versions = {}
         with open('requirements.txt') as f:
             for line in f.readlines():
+                if line.strip().startswith('-e '):
+                    extra_specs.append(line.strip())
+                    continue
                 spec = list(pkg_resources.parse_requirements(line))[0]
                 requested_versions[spec.project_name] = spec
 
@@ -386,6 +393,7 @@ class AppEnv(object):
                 continue
             final_versions[spec.project_name] = spec
         lines = [str(spec) for spec in final_versions.values()]
+        lines.extend(extra_specs)
         lines.sort()
         with open(os.path.join(self.base, "requirements.lock"), "w") as f:
             f.write('\n'.join(lines))
