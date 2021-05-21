@@ -200,6 +200,12 @@ class AppEnv(object):
             "python", help="Spawn the embedded Python interpreter REPL")
         p.set_defaults(func=self.python)
 
+        p = subparsers.add_parser(
+            "run",
+            help="Run a script from the bin/ directory of the virtual env.")
+        p.add_argument("script", help="Name of the script to run.")
+        p.set_defaults(func=self.run_script)
+
         args, remaining = parser.parse_known_args()
 
         if not hasattr(args, 'func'):
@@ -323,6 +329,9 @@ class AppEnv(object):
 
     def python(self, args, remaining):
         self.run('python', remaining)
+
+    def run_script(self, args, remaining):
+        self.run(args.script, remaining)
 
     def reset(self, args=None, remaining=None):
         print(
