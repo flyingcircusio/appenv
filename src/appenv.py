@@ -137,18 +137,20 @@ def ensure_best_python():
         return
     import shutil
 
-    with open('requirements.txt') as f:
-        for line in f:
-            # Expected format:
-            # # appenv-python-preference: 3.1,3.9,3.4
-            if not line.startswith("# appenv-python-preference: "):
-                continue
-            preferences = line.split(':')[1]
-            preferences = [x.strip() for x in preferences.split(',')]
-            preferences = list(filter(None, preferences))
-            break
-        else:
-            preferences = ['3.{}'.format(x) for x in reversed(range(4, 20))]
+    # use newest Python available if nothing else is requested
+    preferences = ['3.{}'.format(x) for x in reversed(range(4, 20))]
+
+    if os.path.exists('requirements.txt'):
+        with open('requirements.txt') as f:
+            for line in f:
+                # Expected format:
+                # # appenv-python-preference: 3.1,3.9,3.4
+                if not line.startswith("# appenv-python-preference: "):
+                    continue
+                preferences = line.split(':')[1]
+                preferences = [x.strip() for x in preferences.split(',')]
+                preferences = list(filter(None, preferences))
+                break
 
     current_python = os.path.realpath(sys.executable)
     for version in preferences:
