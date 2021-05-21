@@ -1,5 +1,5 @@
 #!/bin/sh
-{	# prevent executaion of partial downloads.
+{	# prevent execution of partial downloads.
 set -e
 
 oops() {
