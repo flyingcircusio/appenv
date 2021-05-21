@@ -70,25 +70,17 @@ AppEnv itself is tested against Python 3.4+.
 ## Learning more about appenv
 
 ```
-$ ./ducker --appenv-help
-usage: ducker [-h] [-u] [--appname APPNAME] [--appenvdir APPENVDIR]
-              {update-lockfile,init,reset,python} ...
+$ ./appenv --help
+usage: appenv [-h] {update-lockfile,init,reset,python,run} ...
 
 positional arguments:
-  {update-lockfile,init,reset,python}
+  {update-lockfile,init,reset,python,run}
     update-lockfile     Update the lock file.
     init                Create a new appenv project.
     reset               Reset the environment.
     python              Spawn the embedded Python interpreter REPL
+    run                 Run a script from the bin/ directory of the virtual env.
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  -u, --unclean         Use an unclean working environment.
-  --appname APPNAME
-  --appenvdir APPENVDIR
 ```
-
-
-## Advanced usage
-
-* ``bootstrap by cloning``
