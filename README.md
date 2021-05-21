@@ -35,7 +35,7 @@ Using frozen requirements makes the builds repeatable for you and your team
 and also speeds up subsequent invocations:
 
 ```
-$ ./ducker appenv-update-lockfile
+$ ./appenv update-lockfile
 Updating lockfile
 Installing packages ...
 
@@ -48,16 +48,22 @@ $ time ./ducker wikpedia
 
 ```
 
-## Using a specific version of Python
+## Using a specific version of Python for your application
 
-By default `appenv` uses the default Python 3 interpreter available in your
-environment. If you want to use a specific version of Python you can 
-customize the `shebang` line of your application file:
+`appenv` tries to use the best Python version available. It bootstraps with
+the Python 3 interpreter available in your PATH as `python3` and then can
+either detect the newest Python or select the best python of your choice.
+
+Two disable the automatic detection of the newest version and provide a 
+list of acceptable Python versions (tried in the order you list them)
+add the following line to your requirements.txt file:
 
 ```
-#!/usr/bin/env python3.5
-...
+# appenv-python-preference: 3.1,3.9,3.4
 ```
+
+The best version that is found on the system will be used to re-spawn appenv
+and then also used to manage the virtual environments for your application.
 
 AppEnv itself is tested against Python 3.4+.
 
