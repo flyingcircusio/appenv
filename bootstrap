@@ -9,6 +9,6 @@ oops() {
 
 
 t="$(mktemp -d)/appenv"
-curl -sL https://github.com/flyingcircusio/appenv/raw/master/src/appenv.py -o $t || oops "failed to download appenv"
+curl -sL https://raw.githubusercontent.com/flyingcircusio/appenv/master/src/appenv.py -o $t || oops "failed to download appenv"
 python3 $t init < /dev/tty
 }
