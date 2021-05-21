@@ -8,7 +8,7 @@ oops() {
 }
 
 
-t=$(mktemp)
+t="$(mktemp -d)/appenv"
 curl -sL https://github.com/flyingcircusio/appenv/raw/master/src/appenv.py -o $t || oops "failed to download appenv"
-python3 $t appenv-init < /dev/tty
+python3 $t init < /dev/tty
 }
