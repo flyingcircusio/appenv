@@ -20,7 +20,6 @@ import hashlib
 import http.client
 import os
 import os.path
-import shlex
 import shutil
 import subprocess
 import sys
@@ -30,12 +29,12 @@ import venv
 
 def cmd(c, merge_stderr=True, quiet=False):
     # TODO revisit the cmd() architecture w/ python 3
-    # XXX better IO management for interactive output and seeing original errors
-    # and output at appropriate places ...
+    # XXX better IO management for interactive output and seeing original
+    # errors and output at appropriate places ...
     try:
         kwargs = {"shell": True}
         if merge_stderr:
-            kwargs["stderr"] = stderr = subprocess.STDOUT
+            kwargs["stderr"] = subprocess.STDOUT
         return subprocess.check_output([c], **kwargs)
     except subprocess.CalledProcessError as e:
         print("{} returned with exit code {}".format(c, e.returncode))
@@ -74,8 +73,8 @@ def ensure_venv(target):
         # This is trying to detect whether we're on a proper Python stdlib
         # or on a broken Debian. See various StackOverflow questions about
         # this.
-        import distutils.util
-        import ensurepip
+        import distutils.util  # noqa: F401 imported but unused
+        import ensurepip  # noqa: F401 imported but unused
     except ImportError:
         # Okay, lets repair this, if we can. May need privilege escalation
         # at some point.
@@ -107,8 +106,8 @@ def ensure_venv(target):
                                  "python{}.{}".format(*sys.version_info[:2]),
                                  "site-packages", module))
 
-            # (always) prepend the site packages so we can actually have a fixed
-            # distutils installation.
+            # (always) prepend the site packages so we can actually have a
+            # fixed distutils installation.
             site_packages = os.path.abspath(
                 os.path.join(target, "lib", "python" + python_maj_min,
                              "site-packages"))
@@ -241,8 +240,8 @@ class AppEnv(object):
         os.execv(cmd, argv)
 
     def _prepare(self):
-        # copy used requirements.txt into the target directory so we can use that
-        # to check later
+        # copy used requirements.txt into the target directory so we can use
+        # that to check later
         # - when to clean up old versions? keep like one or two old revisions?
         # - enumerate the revisions and just copy the requirements.txt, check
         #   for ones that are clean or rebuild if necessary
@@ -252,8 +251,8 @@ class AppEnv(object):
             env_dir = os.path.join(self.appenv_dir, 'unclean')
             ensure_venv(env_dir)
             print('Ensuring unclean install ...')
-            cmd('{env_dir}/bin/python -m pip install -r requirements.txt --upgrade'
-                .format(env_dir=env_dir))
+            cmd('{env_dir}/bin/python -m pip install -r requirements.txt'
+                ' --upgrade'.format(env_dir=env_dir))
         else:
             hash_content = []
             requirements = open("requirements.lock", "rb").read()
@@ -268,7 +267,7 @@ class AppEnv(object):
                 [env_dir, os.path.join(self.appenv_dir, "unclean")])
             for path in glob.glob(
                     "{appenv_dir}/*".format(appenv_dir=self.appenv_dir)):
-                if not path in whitelist:
+                if path not in whitelist:
                     print(
                         "Removing expired path: {path} ...".format(path=path))
                     if not os.path.isdir(path):
@@ -276,10 +275,10 @@ class AppEnv(object):
                     else:
                         shutil.rmtree(path)
             if os.path.exists(env_dir):
-                # check whether the existing environment is OK, it might be nice
-                # to rebuild in a separate place if necessary to avoid interruptions
-                # to running services, but that isn't what we're using it for at the
-                # moment
+                # check whether the existing environment is OK, it might be
+                # nice to rebuild in a separate place if necessary to avoid
+                # interruptions to running services, but that isn't what we're
+                # using it for at the  moment
                 try:
                     if not os.path.exists(
                             "{env_dir}/appenv.ready".format(env_dir=env_dir)):
@@ -296,8 +295,8 @@ class AppEnv(object):
                     f.write(requirements)
 
                 print("Installing ...")
-                cmd("{env_dir}/bin/python -m pip install --no-deps -r {env_dir}/requirements.lock"
-                    .format(env_dir=env_dir))
+                cmd("{env_dir}/bin/python -m pip install --no-deps -r"
+                    " {env_dir}/requirements.lock".format(env_dir=env_dir))
 
                 cmd("{env_dir}/bin/python -m pip check".format(
                     env_dir=env_dir))
@@ -343,7 +342,8 @@ class AppEnv(object):
             requirements_txt.write(dependency + "\n")
         print()
         print(
-            "Done. You can now `cd {}` and call `./{}` to bootstrap and run it."
+            "Done. You can now `cd {}` and call"
+            " `./{}` to bootstrap and run it."
             .format(os.path.relpath(target, self.original_cwd), command))
 
     def python(self, args, remaining):
@@ -371,7 +371,8 @@ class AppEnv(object):
 
         # Hack because we might not have pkg_resources, but the venv should
         tmp_paths = cmd(
-            "{tmpdir}/bin/python -c 'import sys; print(\"\\n\".join(sys.path))'"
+            "{tmpdir}/bin/python -c"
+            " 'import sys; print(\"\\n\".join(sys.path))'"
             .format(tmpdir=tmpdir),
             merge_stderr=False).decode(sys.getfilesystemencoding())
         for line in tmp_paths.splitlines():
@@ -423,8 +424,8 @@ class AppEnv(object):
 def main():
     ensure_best_python()
     # clear PYTHONPATH variable to get a defined environment
-    # XXX this is a bit of history. not sure whether its still needed. keeping it
-    # for good measure
+    # XXX this is a bit of history. not sure whether its still needed. keeping
+    # it for good measure
     if "PYTHONPATH" in os.environ:
         del os.environ["PYTHONPATH"]
 
