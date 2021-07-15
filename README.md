@@ -54,18 +54,18 @@ $ time ./ducker wikpedia
 the Python 3 interpreter available in your PATH as `python3` and then can
 either detect the newest Python or select the best python of your choice.
 
-Two disable the automatic detection of the newest version and provide a 
+Two disable the automatic detection of the newest version and provide a
 list of acceptable Python versions (tried in the order you list them)
 add the following line to your requirements.txt file:
 
 ```
-# appenv-python-preference: 3.1,3.9,3.4
+# appenv-python-preference: 3.6,3.9,3.8
 ```
 
 The best version that is found on the system will be used to re-spawn appenv
 and then also used to manage the virtual environments for your application.
 
-AppEnv itself is tested against Python 3.4+.
+AppEnv itself is tested against Python 3.6+.
 
 ## Learning more about appenv
 
@@ -83,4 +83,13 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
+```
+
+## Testing
+
+If you want to contribute, please install `tox` and run it.
+
+```
+$ tox
+
 ```

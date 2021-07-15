@@ -6,7 +6,6 @@ through shared repositories.
 
 from setuptools import setup, find_packages
 
-
 setup(
     name='appenv',
     version='0.2.dev0',
@@ -22,6 +21,7 @@ Programming Language :: Python :: 3
 Programming Language :: Python :: 3.6
 Programming Language :: Python :: 3.7
 Programming Language :: Python :: 3.8
+Programming Language :: Python :: 3.9
 Programming Language :: Python :: 3 :: Only
 """[:-1].split('\n'),
     description=__doc__.strip(),
@@ -30,4 +30,5 @@ Programming Language :: Python :: 3 :: Only
     include_package_data=True,
     zip_safe=True,
     python_requires='>=3.6',
-)
+    extras_require={'test': {
+        'pytest',}})
