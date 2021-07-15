@@ -125,6 +125,57 @@ def ensure_venv(target):
         target=target))
 
 
+def ensure_minimal_python():
+    current_python = os.path.realpath(sys.executable)
+    preferences = None
+    if os.path.exists('requirements.txt'):
+        with open('requirements.txt') as f:
+            for line in f:
+                # Expected format:
+                # # appenv-python-preference: 3.1,3.9,3.4
+                if not line.startswith("# appenv-python-preference: "):
+                    continue
+                preferences = line.split(':')[1]
+                preferences = [x.strip() for x in preferences.split(',')]
+                preferences = list(filter(None, preferences))
+                break
+    if not preferences:
+        # We have no preferences defined, use the current python.
+        print("Update lockfile with with {}.".format(current_python))
+        print("If you want to use a different version, set it as via")
+        print(" `# appenv-python-preference:` in requirements.txt.")
+        return
+
+    preferences.sort(key=lambda s: [int(u) for u in s.split('.')])
+
+    for version in preferences[0:1]:
+        python = shutil.which("python{}".format(version))
+        if not python:
+            # not a usable python
+            continue
+        python = os.path.realpath(python)
+        if python == current_python:
+            # found a preferred python and we're already running as it
+            break
+        # Try whether this Python works
+        try:
+            subprocess.check_call([python, "-c", "print(1)"],
+                                  stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            continue
+
+        argv = [os.path.basename(python)] + sys.argv
+        os.environ["APPENV_BEST_PYTHON"] = python
+        os.execv(python, argv)
+    else:
+        print("Could not find the minimal preferred Python version.")
+        print("To ensure a working requirements.lock on all Python versions")
+        print("make Python {} available on this system.".format(
+            preferences[0]))
+        sys.exit(66)
+
+
 def ensure_best_python():
     if "APPENV_BEST_PYTHON" in os.environ:
         # Don't do this twice to avoid being surprised with
@@ -354,6 +405,7 @@ class AppEnv(object):
         cmd("rm -rf {appenvdir}".format(appenvdir=self.appenv_dir))
 
     def update_lockfile(self, args=None, remaining=None):
+        ensure_minimal_python()
         os.chdir(self.base)
         print("Updating lockfile")
         tmpdir = os.path.join(self.appenv_dir, "updatelock")
@@ -392,6 +444,9 @@ class AppEnv(object):
             for line in f.readlines():
                 if line.strip().startswith('-e '):
                     extra_specs.append(line.strip())
+                    continue
+                # filter comments, in particular # appenv-python-preferences
+                if line.strip().startswith('#'):
                     continue
                 spec = list(pkg_resources.parse_requirements(line))[0]
                 requested_versions[spec.project_name] = spec
