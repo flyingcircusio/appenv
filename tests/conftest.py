@@ -3,7 +3,7 @@ import os.path
 import pytest
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def workdir(tmpdir):
     old = os.getcwd()
     os.chdir(str(tmpdir))

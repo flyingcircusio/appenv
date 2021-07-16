@@ -47,6 +47,6 @@ def test_bootstrap_and_run_python_with_lockfile(workdir, monkeypatch):
     with open("ducker", "w") as f:
         f.write(script)
 
-    output = subprocess.check_output('./appenv python -c "print(1)"',
-                                     shell=True)
+    output = subprocess.check_output(
+        './appenv python -c "print(1)"', shell=True)
     assert output == b"1\n"
