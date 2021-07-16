@@ -41,7 +41,7 @@ def test_update_lockfile_minimal_python(workdir, monkeypatch):
 
     with open(requirements_file, "r+") as f:
         lines = f.readlines()
-        lines.insert(0, "# appenv-python-preference: 3.8,3.6,3.9")
+        lines.insert(0, "# appenv-python-preference: 3.8,3.6,3.9\n")
         f.seek(0)
         f.writelines(lines)
 
@@ -69,7 +69,7 @@ def test_update_lockfile_missing_minimal_python(workdir, monkeypatch):
 
     with open(requirements_file, "r+") as f:
         lines = f.readlines()
-        lines[0] = "# appenv-python-preference: 3.8,3.6,3.9"
+        lines[0] = "# appenv-python-preference: 3.8,3.6,3.9\n"
         f.seek(0)
         f.writelines(lines)
 
