@@ -389,10 +389,9 @@ class AppEnv(object):
         with open("requirements.txt", "w") as requirements_txt:
             requirements_txt.write(dependency + "\n")
         print()
-        print(
-            "Done. You can now `cd {}` and call"
-            " `./{}` to bootstrap and run it."
-            .format(os.path.relpath(target, self.original_cwd), command))
+        print("Done. You can now `cd {}` and call"
+              " `./{}` to bootstrap and run it.".format(
+                  os.path.relpath(target, self.original_cwd), command))
 
     def python(self, args, remaining):
         self.run('python', remaining)
@@ -421,8 +420,8 @@ class AppEnv(object):
         # Hack because we might not have pkg_resources, but the venv should
         tmp_paths = cmd(
             "{tmpdir}/bin/python -c"
-            " 'import sys; print(\"\\n\".join(sys.path))'"
-            .format(tmpdir=tmpdir),
+            " 'import sys; print(\"\\n\".join(sys.path))'".format(
+                tmpdir=tmpdir),
             merge_stderr=False).decode(sys.getfilesystemencoding())
         for line in tmp_paths.splitlines():
             line = line.strip()

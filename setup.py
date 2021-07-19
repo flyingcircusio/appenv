@@ -30,5 +30,4 @@ Programming Language :: Python :: 3 :: Only
     include_package_data=True,
     zip_safe=True,
     python_requires='>=3.6',
-    extras_require={'test': {
-        'pytest',}})
+    extras_require={'test': {'pytest'}})
