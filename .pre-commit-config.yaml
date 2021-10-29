@@ -11,6 +11,6 @@ repos:
     -   id: yapf
         args: [-i, -p]
 -   repo: https://github.com/pycqa/flake8
-    rev: '3.9.2'  # pick a git hash / tag to point to
+    rev: '4.0.1'  # pick a git hash / tag to point to
     hooks:
     -   id: flake8
