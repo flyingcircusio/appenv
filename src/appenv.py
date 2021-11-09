@@ -460,6 +460,10 @@ class AppEnv(object):
                 if line.strip().startswith('-e '):
                     extra_specs.append(line.strip())
                     continue
+                if line.strip().startswith('--'):
+                    extra_specs.append(line.strip())
+                    continue
+
                 # filter comments, in particular # appenv-python-preferences
                 if line.strip().startswith('#'):
                     continue
