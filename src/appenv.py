@@ -255,10 +255,10 @@ class AppEnv(object):
         p = subparsers.add_parser(
             "update-lockfile", help="Update the lock file.")
         p.set_defaults(func=self.update_lockfile)
-        
+
         p = subparsers.add_parser('prepare', help='Prepare the venv.')
         p.set_defaults(func=self.prepare)
-        
+
         p = subparsers.add_parser("init", help="Create a new appenv project.")
         p.set_defaults(func=self.init)
 
