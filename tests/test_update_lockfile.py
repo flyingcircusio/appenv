@@ -53,7 +53,7 @@ def test_update_lockfile_minimal_python(workdir, monkeypatch):
         lockfile_content = f.read()
     assert "pytest==6.1.2" in lockfile_content
     assert "importlib-metadata==" in lockfile_content
-    assert "typing-extensions==" in lockfile_content
+    assert "typing_extensions==" in lockfile_content
 
 
 @pytest.mark.skipif(
