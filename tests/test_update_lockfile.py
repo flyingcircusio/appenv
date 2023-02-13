@@ -51,6 +51,9 @@ def test_update_lockfile_minimal_python(workdir, monkeypatch):
     assert os.path.exists(lockfile)
     with open(lockfile) as f:
         lockfile_content = f.read()
+    # replace underscore with dashes for python 3.6 testing
+    # some versions do not normalize the name like newer python versions
+    lockfile_content = lockfile_content.replace("_", "-")
     assert "pytest==6.1.2" in lockfile_content
     assert "importlib-metadata==" in lockfile_content
     assert "typing-extensions==" in lockfile_content
