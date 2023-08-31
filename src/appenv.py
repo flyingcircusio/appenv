@@ -68,7 +68,7 @@ def ensure_venv(target):
     version = sys.version.split()[0]
     python_maj_min = ".".join(str(x) for x in sys.version_info[:2])
     print("Creating venv ...")
-    venv.create(target, with_pip=False)
+    venv.create(target, with_pip=False, symlinks=True)
 
     try:
         # This is trying to detect whether we're on a proper Python stdlib
