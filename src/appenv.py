@@ -46,6 +46,14 @@ def cmd(c, merge_stderr=True, quiet=False):
         raise ValueError(e.output.decode("utf-8", "replace"))
 
 
+def python(path, c, **kwargs):
+    return cmd([os.path.join(path, "bin/python")] + c, **kwargs)
+
+
+def pip(path, c, **kwargs):
+    return python(path, ["-m", "pip"] + c, **kwargs)
+
+
 def get(host, path, f):
     conn = http.client.HTTPSConnection(host)
     conn.request("GET", path)
@@ -123,12 +131,8 @@ def ensure_venv(target):
             shutil.rmtree(tmp_base)
 
     print("Ensuring pip ...")
-    cmd([
-        "{target}/bin/python".format(target=target), "-m", "ensurepip",
-        "--default-pip"])
-    cmd([
-        "{target}/bin/python".format(target=target), "-m", "pip", "install",
-        "--upgrade", "pip"])
+    python(target, ["-m", "ensurepip", "--default-pip"])
+    pip(target, ["install", "--upgrade", "pip"])
 
 
 def ensure_minimal_python():
@@ -433,13 +437,10 @@ class AppEnv(object):
                 f.write(requirements)
 
             print("Installing ...")
-            cmd([
-                "{env_dir}/bin/python".format(env_dir=env_dir), "-m", "pip",
+            pip(env_dir, [
                 "install", "--no-deps", "-r",
                 "{env_dir}/requirements.lock".format(env_dir=env_dir)])
-            cmd([
-                "{env_dir}/bin/python".format(env_dir=env_dir), "-m", "pip",
-                "check"])
+            pip(env_dir, ["check"])
 
             with open(os.path.join(env_dir, "appenv.ready"), "w") as f:
                 f.write("Ready or not, here I come, you can't hide\n")
@@ -512,15 +513,10 @@ class AppEnv(object):
             cmd(["rm", "-rf", tmpdir])
         ensure_venv(tmpdir)
         print("Installing packages ...")
-        cmd([
-            "{tmpdir}/bin/python".format(tmpdir=tmpdir), "-m", "pip",
-            "install", "-r", "requirements.txt"])
+        pip(tmpdir, ["install", "-r", "requirements.txt"])
 
         extra_specs = []
-        result = cmd([
-            "{tmpdir}/bin/python".format(tmpdir=tmpdir), "-m", "pip", "freeze"
-        ],
-            merge_stderr=False).decode('ascii')
+        result = pip(tmpdir, ["freeze"], merge_stderr=False).decode('ascii')
         pinned_versions = {}
         for line in result.splitlines():
             if line.strip().startswith('-e '):
