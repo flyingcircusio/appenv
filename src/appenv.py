@@ -323,10 +323,12 @@ class AppEnv(object):
         self._assert_requirements_lock()
 
         hash_content = []
-        requirements = open("requirements.lock", "rb").read()
+        with open("requirements.lock", "rb") as f:
+            requirements = f.read()
         hash_content.append(os.fsencode(os.path.realpath(sys.executable)))
         hash_content.append(requirements)
-        hash_content.append(open(__file__, "rb").read())
+        with open(__file__, "rb") as f:
+            hash_content.append(f.read())
         env_hash = hashlib.new("sha256",
                                b"".join(hash_content)).hexdigest()[:8]
         env_dir = os.path.join(self.appenv_dir, env_hash)
