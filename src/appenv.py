@@ -333,7 +333,10 @@ class AppEnv(object):
                                b"".join(hash_content)).hexdigest()[:8]
         env_dir = os.path.join(self.appenv_dir, env_hash)
 
-        whitelist = set([env_dir, os.path.join(self.appenv_dir, "unclean")])
+        whitelist = set([
+            env_dir,
+            os.path.join(self.appenv_dir, "unclean"),
+            os.path.join(self.appenv_dir, 'current')])
         for path in glob.glob(
                 "{appenv_dir}/*".format(appenv_dir=self.appenv_dir)):
             if path not in whitelist:
@@ -369,6 +372,12 @@ class AppEnv(object):
 
             with open(os.path.join(env_dir, "appenv.ready"), "w") as f:
                 f.write("Ready or not, here I come, you can't hide\n")
+            current_path = os.path.join(self.appenv_dir, 'current')
+            try:
+                os.unlink(current_path)
+            except FileNotFoundError:
+                pass
+            os.symlink(env_dir, current_path)
 
         self.env_dir = env_dir
 
