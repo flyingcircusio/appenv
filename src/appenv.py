@@ -262,6 +262,9 @@ class AppEnv(object):
         p = subparsers.add_parser("reset", help="Reset the environment.")
         p.set_defaults(func=self.reset)
 
+        p = subparsers.add_parser('prepare', help='Prepare the venv.')
+        p.set_defaults(func=self.prepare)
+
         p = subparsers.add_parser(
             "python", help="Spawn the embedded Python interpreter REPL")
         p.set_defaults(func=self.python)
@@ -280,7 +283,7 @@ class AppEnv(object):
             args.func(args, remaining)
 
     def run(self, command, argv):
-        self._prepare()
+        self.prepare()
         cmd = os.path.join(self.env_dir, 'bin', command)
         argv = [cmd] + argv
         os.environ['APPENV_BASEDIR'] = self.base
@@ -309,7 +312,7 @@ class AppEnv(object):
             hash_content = f.read()
         return hashlib.new("sha256", hash_content).hexdigest()
 
-    def _prepare(self):
+    def prepare(self, args=None, remaining=None):
         # copy used requirements.txt into the target directory so we can use
         # that to check later
         # - when to clean up old versions? keep like one or two old revisions?
@@ -320,10 +323,12 @@ class AppEnv(object):
         self._assert_requirements_lock()
 
         hash_content = []
-        requirements = open("requirements.lock", "rb").read()
+        with open("requirements.lock", "rb") as f:
+            requirements = f.read()
         hash_content.append(os.fsencode(os.path.realpath(sys.executable)))
         hash_content.append(requirements)
-        hash_content.append(open(__file__, "rb").read())
+        with open(__file__, "rb") as f:
+            hash_content.append(f.read())
         env_hash = hashlib.new("sha256",
                                b"".join(hash_content)).hexdigest()[:8]
         env_dir = os.path.join(self.appenv_dir, env_hash)

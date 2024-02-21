@@ -71,13 +71,14 @@ AppEnv itself is tested against Python 3.6+.
 
 ```
 $ ./appenv --help
-usage: appenv [-h] {update-lockfile,init,reset,python,run} ...
+usage: appenv [-h] {update-lockfile,init,reset,prepare,python,run} ...
 
 positional arguments:
-  {update-lockfile,init,reset,python,run}
+  {update-lockfile,init,reset,prepare,python,run}
     update-lockfile     Update the lock file.
     init                Create a new appenv project.
     reset               Reset the environment.
+    prepare             Prepare the venv.
     python              Spawn the embedded Python interpreter REPL
     run                 Run a script from the bin/ directory of the virtual env.
 
