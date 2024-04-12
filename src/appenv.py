@@ -444,7 +444,7 @@ class AppEnv(object):
         cmd("{tmpdir}/bin/python -m pip install -r requirements.txt".format(
             tmpdir=tmpdir))
 
-        # Hack because we might not have packaging, but the venv should
+        # Hack because we might not have pkg_resources, but the venv should
         tmp_paths = cmd(
             "{tmpdir}/bin/python -c"
             " 'import sys; print(\"\\n\".join(sys.path))'".format(
@@ -455,7 +455,7 @@ class AppEnv(object):
             if not line:
                 continue
             sys.path.append(line)
-        from packaging.requirements import Requirement
+        import pkg_resources
 
         extra_specs = []
         result = cmd(
@@ -466,8 +466,8 @@ class AppEnv(object):
             if line.strip().startswith('-e '):
                 # We'd like to pick up the original -e statement here.
                 continue
-            spec = Requirement(line)
-            pinned_versions[spec.name] = spec
+            spec = list(pkg_resources.parse_requirements(line))[0]
+            pinned_versions[spec.project_name] = spec
         requested_versions = {}
         with open('requirements.txt') as f:
             for line in f.readlines():
@@ -481,20 +481,20 @@ class AppEnv(object):
                 # filter comments, in particular # appenv-python-preferences
                 if line.strip().startswith('#'):
                     continue
-                spec = Requirement(line)
-                requested_versions[spec.name] = spec
+                spec = list(pkg_resources.parse_requirements(line))[0]
+                requested_versions[spec.project_name] = spec
 
         final_versions = {}
         for spec in requested_versions.values():
             # Pick versions with URLs to ensure we don't get the screwed up
             # results from pip freeze.
             if spec.url:
-                final_versions[spec.name] = spec
+                final_versions[spec.project_name] = spec
         for spec in pinned_versions.values():
             # Ignore versions we already picked
-            if spec.name in final_versions:
+            if spec.project_name in final_versions:
                 continue
-            final_versions[spec.name] = spec
+            final_versions[spec.project_name] = spec
         lines = [str(spec) for spec in final_versions.values()]
         lines.extend(extra_specs)
         lines.sort()
