@@ -226,6 +226,16 @@ def ensure_best_python(base):
         sys.exit(65)
 
 
+class ParsedRequirement:
+
+    def __init__(self, name, url=None):
+        self.name = name
+        self.url = url
+
+    def __str__(self):
+        return self.name
+
+
 def parse_requirement_string(requirement_string):
     """Parse a requirement from a requirement string.
 
@@ -268,11 +278,7 @@ def parse_requirement_string(requirement_string):
         f"(?:{whitespace_regex})?;?", requirement_string)
     url = url_match.group('url') if url_match else None
 
-    # now we want an object with .name, .url and str(obj) == requirement_string
-    return type('ParsedRequirement', (), {
-        'name': name,
-        'url': url,
-        '__str__': lambda self: requirement_string})()
+    return ParsedRequirement(name, url)
 
 
 class AppEnv(object):
