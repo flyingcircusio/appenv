@@ -25,4 +25,5 @@ def test_prepare_creates_venv_symlink(workdir, monkeypatch):
     env.update_lockfile()
     env.prepare()
     assert os.path.islink(os.path.join(env.appenv_dir, "current"))
-    assert os.readlink(os.path.join(env.appenv_dir, "current")) == env.env_dir
+    assert (os.path.realpath(os.path.join(
+        env.appenv_dir, "current")) == os.path.realpath(env.env_dir))
