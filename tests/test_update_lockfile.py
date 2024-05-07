@@ -90,3 +90,23 @@ def test_update_lockfile_missing_minimal_python(workdir, monkeypatch):
         with pytest.raises(SystemExit) as e:
             env.update_lockfile()
     assert e.value.code == 66
+
+
+def test_parse_requirement_name():
+    req_strings_without_url = [
+        "foo",
+        "foo[bar]",
+        "foo[bar,baz]~=1.0",
+        "foo==1.0",
+        "foo[bar,baz]!=1.0",
+        "foo<1.0",]
+    req_strings_with_url = [
+        "foo[bar,baz] @ https://example.com",
+        "foo[bar,baz] @ https://example.com ; python_version < '3.6'",]
+    for req_string in req_strings_without_url:
+        req = appenv.parse_requirement_string(req_string)
+        assert req.name == "foo"
+    for req_string in req_strings_with_url:
+        req = appenv.parse_requirement_string(req_string)
+        assert req.name == "foo"
+        assert req.url == "https://example.com"
