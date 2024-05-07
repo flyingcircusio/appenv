@@ -377,7 +377,7 @@ class AppEnv(object):
                 os.unlink(current_path)
             except FileNotFoundError:
                 pass
-            os.symlink(env_dir, current_path)
+            os.symlink(env_hash, current_path)
 
         self.env_dir = env_dir
 
