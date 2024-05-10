@@ -227,13 +227,19 @@ def ensure_best_python(base):
 
 
 class ParsedRequirement:
+    """A parsed requirement from a requirement string.
 
-    def __init__(self, name, url=None):
+    Has a similiar interface to the real Requirement class from
+    packaging.requirements, but is reduced to the parts we need.
+    """
+
+    def __init__(self, name, url, requirement_string):
         self.name = name
         self.url = url
+        self.requirement_string = requirement_string
 
     def __str__(self):
-        return self.name
+        return self.requirement_string
 
 
 def parse_requirement_string(requirement_string):
@@ -278,7 +284,7 @@ def parse_requirement_string(requirement_string):
         f"(?:{whitespace_regex})?;?", requirement_string)
     url = url_match.group('url') if url_match else None
 
-    return ParsedRequirement(name, url)
+    return ParsedRequirement(name, url, requirement_string)
 
 
 class AppEnv(object):
