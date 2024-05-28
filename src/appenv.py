@@ -33,14 +33,25 @@ def cmd(c, merge_stderr=True, quiet=False):
     # XXX better IO management for interactive output and seeing original
     # errors and output at appropriate places ...
     try:
-        kwargs = {"shell": True}
+        kwargs = {}
+        if isinstance(c, str):
+            kwargs["shell"] = True
+            c = [c]
         if merge_stderr:
             kwargs["stderr"] = subprocess.STDOUT
-        return subprocess.check_output([c], **kwargs)
+        return subprocess.check_output(c, **kwargs)
     except subprocess.CalledProcessError as e:
         print("{} returned with exit code {}".format(c, e.returncode))
         print(e.output.decode("utf-8", "replace"))
         raise ValueError(e.output.decode("utf-8", "replace"))
+
+
+def python(path, c, **kwargs):
+    return cmd([os.path.join(path, "bin/python")] + c, **kwargs)
+
+
+def pip(path, c, **kwargs):
+    return python(path, ["-m", "pip"] + c, **kwargs)
 
 
 def get(host, path, f):
@@ -63,7 +74,7 @@ def ensure_venv(target):
 
     if os.path.exists(target):
         print("Deleting unclean target)")
-        cmd("rm -rf {target}".format(target=target))
+        cmd(["rm", "-rf", target])
 
     version = sys.version.split()[0]
     python_maj_min = ".".join(str(x) for x in sys.version_info[:2])
@@ -94,7 +105,7 @@ def ensure_venv(target):
                 get("www.python.org",
                     "/ftp/python/{v}/Python-{v}.tgz".format(v=version), f)
 
-            cmd("tar xf {} -C {}".format(download, tmp_base))
+            cmd(["tar", "xf", download, "-C", tmp_base])
 
             assert os.path.exists(
                 os.path.join(tmp_base, "Python-{}".format(version)))
@@ -120,9 +131,8 @@ def ensure_venv(target):
             shutil.rmtree(tmp_base)
 
     print("Ensuring pip ...")
-    cmd("{target}/bin/python -m ensurepip --default-pip".format(target=target))
-    cmd("{target}/bin/python -m pip install --upgrade pip".format(
-        target=target))
+    python(target, ["-m", "ensurepip", "--default-pip"])
+    pip(target, ["install", "--upgrade", "pip"])
 
 
 def ensure_minimal_python():
@@ -418,7 +428,7 @@ class AppEnv(object):
                     raise Exception()
             except Exception:
                 print("Existing envdir not consistent, deleting")
-                cmd("rm -rf {env_dir}".format(env_dir=env_dir))
+                cmd(["rm", "-rf", env_dir])
 
         if not os.path.exists(env_dir):
             ensure_venv(env_dir)
@@ -427,10 +437,10 @@ class AppEnv(object):
                 f.write(requirements)
 
             print("Installing ...")
-            cmd("{env_dir}/bin/python -m pip install --no-deps -r"
-                " {env_dir}/requirements.lock".format(env_dir=env_dir))
-
-            cmd("{env_dir}/bin/python -m pip check".format(env_dir=env_dir))
+            pip(env_dir, [
+                "install", "--no-deps", "-r",
+                "{env_dir}/requirements.lock".format(env_dir=env_dir)])
+            pip(env_dir, ["check"])
 
             with open(os.path.join(env_dir, "appenv.ready"), "w") as f:
                 f.write("Ready or not, here I come, you can't hide\n")
@@ -492,7 +502,7 @@ class AppEnv(object):
         print(
             "Resetting ALL application environments in {appenvdir} ...".format(
                 appenvdir=self.appenv_dir))
-        cmd("rm -rf {appenvdir}".format(appenvdir=self.appenv_dir))
+        cmd(["rm", "-rf", self.appenv_dir])
 
     def update_lockfile(self, args=None, remaining=None):
         ensure_minimal_python()
@@ -500,16 +510,13 @@ class AppEnv(object):
         print("Updating lockfile")
         tmpdir = os.path.join(self.appenv_dir, "updatelock")
         if os.path.exists(tmpdir):
-            cmd("rm -rf {tmpdir}".format(tmpdir=tmpdir))
+            cmd(["rm", "-rf", tmpdir])
         ensure_venv(tmpdir)
         print("Installing packages ...")
-        cmd("{tmpdir}/bin/python -m pip install -r requirements.txt".format(
-            tmpdir=tmpdir))
+        pip(tmpdir, ["install", "-r", "requirements.txt"])
 
         extra_specs = []
-        result = cmd(
-            "{tmpdir}/bin/python -m pip freeze".format(tmpdir=tmpdir),
-            merge_stderr=False).decode('ascii')
+        result = pip(tmpdir, ["freeze"], merge_stderr=False).decode('ascii')
         pinned_versions = {}
         for line in result.splitlines():
             if line.strip().startswith('-e '):
@@ -553,7 +560,7 @@ class AppEnv(object):
                 self._hash_requirements()))
             f.write('\n'.join(lines))
             f.write('\n')
-        cmd("rm -rf {tmpdir}".format(tmpdir=tmpdir))
+        cmd(["rm", "-rf", tmpdir])
 
 
 def main():
