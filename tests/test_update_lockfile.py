@@ -34,7 +34,7 @@ def test_update_lockfile_minimal_python(workdir, monkeypatch):
     monkeypatch.setattr('sys.stdin',
                         io.StringIO('pytest\npytest==6.1.2\nppytest\n'))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ppytest'), os.getwd())
+    env = appenv.AppEnv(os.path.join(workdir, 'ppytest'), os.getcwd())
     env.init()
 
     lockfile = os.path.join(workdir, "ppytest", "requirements.lock")
@@ -66,7 +66,7 @@ def test_update_lockfile_missing_minimal_python(workdir, monkeypatch):
     monkeypatch.setattr('sys.stdin',
                         io.StringIO('pytest\npytest==6.1.2\nppytest\n'))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ppytest'), os.getwd())
+    env = appenv.AppEnv(os.path.join(workdir, 'ppytest'), os.getcwd())
     env.init()
 
     requirements_file = os.path.join(workdir, "ppytest", "requirements.txt")
