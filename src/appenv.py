@@ -85,18 +85,17 @@ def ensure_venv(target):
         # This is trying to detect whether we're on a proper Python stdlib
         # or on a broken Debian. See various StackOverflow questions about
         # this.
-        import distutils.util  # noqa: F401 imported but unused
         import ensurepip  # noqa: F401 imported but unused
     except ImportError:
         # Okay, lets repair this, if we can. May need privilege escalation
         # at some point.
-        # We could do: apt-get -y -q install python3-distutils python3-venv
+        # We could do: apt-get -y -q install python3-venv
         # on some systems but it requires root and is specific to Debian.
         # I decided to go a more sledge hammer route.
 
         # XXX we can speed this up by storing this in ~/.appenv/overlay instead
         # of doing the download for every venv we manage
-        print("Activating broken distutils/ensurepip stdlib workaround ...")
+        print("Activating broken ensurepip stdlib workaround ...")
 
         tmp_base = tempfile.mkdtemp()
         try:
@@ -109,7 +108,7 @@ def ensure_venv(target):
 
             assert os.path.exists(
                 os.path.join(tmp_base, "Python-{}".format(version)))
-            for module in ["ensurepip", "distutils"]:
+            for module in ["ensurepip"]:
                 print(module)
                 shutil.copytree(
                     os.path.join(tmp_base, "Python-{}".format(version), "Lib",
@@ -119,7 +118,7 @@ def ensure_venv(target):
                                  "site-packages", module))
 
             # (always) prepend the site packages so we can actually have a
-            # fixed distutils installation.
+            # fixed installation.
             site_packages = os.path.abspath(
                 os.path.join(target, "lib", "python" + python_maj_min,
                              "site-packages"))
