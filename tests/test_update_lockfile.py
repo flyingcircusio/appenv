@@ -10,7 +10,7 @@ import sys
 def test_init_and_create_lockfile(workdir, monkeypatch):
     monkeypatch.setattr('sys.stdin', io.StringIO('ducker\nducker<2.0.2\n\n'))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ducker'))
+    env = appenv.AppEnv(os.path.join(workdir, 'ducker'), os.getcwd())
     env.init()
 
     lockfile = os.path.join(workdir, "ducker", "requirements.lock")
