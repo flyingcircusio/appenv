@@ -9,7 +9,7 @@ def test_init(workdir, monkeypatch):
 
     assert not os.path.exists(os.path.join(workdir, "ducker"))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ducker'))
+    env = appenv.AppEnv(os.path.join(workdir, 'ducker'), os.getcwd())
     env.init()
 
     assert os.readlink(os.path.join(workdir, "ducker", "ducker")) == 'appenv'
@@ -46,7 +46,7 @@ def test_init(workdir, monkeypatch):
 def test_init_explicit_target(workdir, monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO("ducker\n\nbaz\n"))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ducker'))
+    env = appenv.AppEnv(os.path.join(workdir, 'ducker'), os.getcwd())
     env.init()
 
     assert os.path.exists(os.path.join(workdir, "baz"))
@@ -65,7 +65,7 @@ def test_init_explicit_target(workdir, monkeypatch):
 def test_init_explicit_package_and_target(workdir, monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO("foo\nbar\nbaz\n"))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ducker'))
+    env = appenv.AppEnv(os.path.join(workdir, 'ducker'), os.getcwd())
     env.init()
 
     assert os.path.exists(os.path.join(workdir, "baz"))
