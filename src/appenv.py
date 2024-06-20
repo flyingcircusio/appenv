@@ -133,6 +133,10 @@ def ensure_venv(target):
     python(target, ["-m", "ensurepip", "--default-pip"])
     pip(target, ["install", "--upgrade", "pip"])
 
+    # backwards compatibilty: install setuptools if python >= 3.12
+    if sys.version_info >= (3, 12):
+        pip(target, ["install", "--upgrade", "setuptools"])
+
 
 def ensure_minimal_python():
     current_python = os.path.realpath(sys.executable)
