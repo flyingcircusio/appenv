@@ -155,7 +155,7 @@ def ensure_minimal_python():
     preferences = parse_preferences()
     if not preferences:
         # We have no preferences defined, use the current python.
-        print("Update lockfile with with {}.".format(current_python))
+        print("Updating lockfile with with {}.".format(current_python))
         print("If you want to use a different version, set it via")
         print(" `# appenv-python-preference:` in requirements.txt.")
         return
