@@ -158,13 +158,6 @@ def ensure_minimal_python():
         print("Update lockfile with with {}.".format(current_python))
         print("If you want to use a different version, set it via")
         print(" `# appenv-python-preference:` in requirements.txt.")
-        if sys.version_info >= (3, 12):
-            print("You are using a Python version >= 3.12.")
-            print(
-                "Please specify a Python version in the requirements.txt file."
-            )
-            print("Lockfiles created with a Python version lower than 3.12")
-            print("may create a broken venv with a Python version >= 3.12.")
         return
 
     preferences.sort(key=lambda s: [int(u) for u in s.split('.')])
@@ -209,6 +202,13 @@ def ensure_best_python(base):
     preferences = parse_preferences()
 
     if preferences is None:
+        if sys.version_info >= (3, 12):
+            print("You are using a Python version >= 3.12.")
+            print(
+                "Please specify a Python version in the requirements.txt file."
+            )
+            print("Lockfiles created with a Python version lower than 3.12")
+            print("may create a broken venv with a Python version >= 3.12.")
         # use newest Python available if nothing else is requested
         preferences = ['3.{}'.format(x) for x in reversed(range(4, 20))]
 
