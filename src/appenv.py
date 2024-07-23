@@ -518,9 +518,10 @@ class AppEnv(object):
         ensure_minimal_python()
         preferences = parse_preferences()
         python312_mixed_setuptools_workaround = False
-        if preferences is not None and '3.12' in preferences and any(
-                f'3.{x}' in preferences for x in range(4, 12)):
-            python312_mixed_setuptools_workaround = True
+        if preferences is not None:
+            if any(f'3.{x}' in preferences for x in range(4, 12)):
+                if any(f'3.{x}' in preferences for x in range(12, 20)):
+                    python312_mixed_setuptools_workaround = True
         os.chdir(self.base)
         print("Updating lockfile")
         tmpdir = os.path.join(self.appenv_dir, "updatelock")
