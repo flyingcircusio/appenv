@@ -28,6 +28,14 @@ import venv
 import re
 
 
+class TColors:
+    """Terminal colors for pretty output."""
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RESET = '\033[0m'
+
+
 def cmd(c, merge_stderr=True, quiet=False):
     # TODO revisit the cmd() architecture w/ python 3
     # XXX better IO management for interactive output and seeing original
@@ -508,6 +516,25 @@ class AppEnv(object):
 
     def update_lockfile(self, args=None, remaining=None):
         ensure_minimal_python()
+        preferences = parse_preferences()
+        if preferences is not None and '3.12' in preferences and any(
+                f'3.{x}' in preferences for x in range(4, 12)):
+            print(TColors.RED +
+                  "Warning: mixing Python 3.12 and older versions in the ")
+            print("requirements.txt file will lead to a broken venv once")
+            print("batou chooses Python 3.12 as the best (highest preference,")
+            print(
+                "available) Python version. Since python/cpython/issues/95299,"
+            )
+            print("python >= 3.12 do not install setuptools into the venv by")
+            print("default anymore. Pip of previous versions of python")
+            print(
+                "create a deficient requirements.lock file, as the output of")
+            print("pip freeze is missing the setuptools requirement, whose")
+            print(
+                "behaviour only changed in python 3.12 (pypa/pip/pull/12032)."
+                + TColors.RESET)
+            print()
         os.chdir(self.base)
         print("Updating lockfile")
         tmpdir = os.path.join(self.appenv_dir, "updatelock")
@@ -519,6 +546,7 @@ class AppEnv(object):
 
         extra_specs = []
         result = pip(tmpdir, ["freeze"], merge_stderr=False).decode('ascii')
+        # They changed this behaviour in https://github.com/pypa/pip/pull/12032
         pinned_versions = {}
         for line in result.splitlines():
             if line.strip().startswith('-e '):
