@@ -134,8 +134,7 @@ def ensure_venv(target):
     pip(target, ["install", "--upgrade", "pip"])
 
 
-def ensure_minimal_python():
-    current_python = os.path.realpath(sys.executable)
+def parse_preferences():
     preferences = None
     if os.path.exists('requirements.txt'):
         with open('requirements.txt') as f:
@@ -148,6 +147,12 @@ def ensure_minimal_python():
                 preferences = [x.strip() for x in preferences.split(',')]
                 preferences = list(filter(None, preferences))
                 break
+    return preferences
+
+
+def ensure_minimal_python():
+    current_python = os.path.realpath(sys.executable)
+    preferences = parse_preferences()
     if not preferences:
         # We have no preferences defined, use the current python.
         print("Update lockfile with with {}.".format(current_python))
@@ -201,20 +206,11 @@ def ensure_best_python(base):
         return
     import shutil
 
-    # use newest Python available if nothing else is requested
-    preferences = ['3.{}'.format(x) for x in reversed(range(4, 20))]
+    preferences = parse_preferences()
 
-    if os.path.exists('requirements.txt'):
-        with open('requirements.txt') as f:
-            for line in f:
-                # Expected format:
-                # # appenv-python-preference: 3.1,3.9,3.4
-                if not line.startswith("# appenv-python-preference: "):
-                    continue
-                preferences = line.split(':')[1]
-                preferences = [x.strip() for x in preferences.split(',')]
-                preferences = list(filter(None, preferences))
-                break
+    if preferences is None:
+        # use newest Python available if nothing else is requested
+        preferences = ['3.{}'.format(x) for x in reversed(range(4, 20))]
 
     current_python = os.path.realpath(sys.executable)
     for version in preferences:
