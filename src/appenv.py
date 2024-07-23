@@ -514,7 +514,7 @@ class AppEnv(object):
                 appenvdir=self.appenv_dir))
         cmd(["rm", "-rf", self.appenv_dir])
 
-    def update_lockfile(self, freeze_args=None, remaining=None):
+    def update_lockfile(self, args=None, remaining=None):
         ensure_minimal_python()
         preferences = parse_preferences()
         python312_mixed_setuptools_workaround = False
