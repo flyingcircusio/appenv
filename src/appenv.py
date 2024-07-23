@@ -514,27 +514,13 @@ class AppEnv(object):
                 appenvdir=self.appenv_dir))
         cmd(["rm", "-rf", self.appenv_dir])
 
-    def update_lockfile(self, args=None, remaining=None):
+    def update_lockfile(self, freeze_args=None, remaining=None):
         ensure_minimal_python()
         preferences = parse_preferences()
+        python312_mixed_setuptools_workaround = False
         if preferences is not None and '3.12' in preferences and any(
                 f'3.{x}' in preferences for x in range(4, 12)):
-            print(TColors.RED +
-                  "Warning: mixing Python 3.12 and older versions in the ")
-            print("requirements.txt file will lead to a broken venv once")
-            print("batou chooses Python 3.12 as the best (highest preference,")
-            print(
-                "available) Python version. Since python/cpython/issues/95299,"
-            )
-            print("python >= 3.12 do not install setuptools into the venv by")
-            print("default anymore. Pip of previous versions of python")
-            print(
-                "create a deficient requirements.lock file, as the output of")
-            print("pip freeze is missing the setuptools requirement, whose")
-            print(
-                "behaviour only changed in python 3.12 (pypa/pip/pull/12032)."
-                + TColors.RESET)
-            print()
+            python312_mixed_setuptools_workaround = True
         os.chdir(self.base)
         print("Updating lockfile")
         tmpdir = os.path.join(self.appenv_dir, "updatelock")
@@ -545,7 +531,11 @@ class AppEnv(object):
         pip(tmpdir, ["install", "-r", "requirements.txt"])
 
         extra_specs = []
-        result = pip(tmpdir, ["freeze"], merge_stderr=False).decode('ascii')
+        pip_freeze_args = ["freeze"]
+        if python312_mixed_setuptools_workaround:
+            pip_freeze_args.extend(["--all", "--exclude", "pip"])
+        result = pip(
+            tmpdir, pip_freeze_args, merge_stderr=False).decode('ascii')
         # They changed this behaviour in https://github.com/pypa/pip/pull/12032
         pinned_versions = {}
         for line in result.splitlines():
