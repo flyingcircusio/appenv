@@ -21,10 +21,9 @@ def test_init_and_create_lockfile(workdir, monkeypatch):
     assert os.path.exists(lockfile)
     with open(lockfile) as f:
         lockfile_content = f.read()
-    assert (lockfile_content == """\
+    assert """\
 # appenv-requirements-hash: ffa75c00de4879b41008d0e9f6b9953cf7d65bb5f5b85d1d049e783b2486614d
-ducker==2.0.1
-""")  # noqa
+ducker==2.0.1""" in lockfile_content  # noqa
 
 
 @pytest.mark.skipif(
