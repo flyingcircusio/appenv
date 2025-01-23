@@ -13,7 +13,7 @@ def test_init_and_create_lockfile(workdir, monkeypatch):
     env = appenv.AppEnv(os.path.join(workdir, 'ducker'), os.getcwd())
     env.init()
 
-    lockfile = os.path.join(workdir, "ducker", "requirements.lock")
+    lockfile = os.path.join(workdir, "ducker", "requirements.txt")
     assert not os.path.exists(lockfile)
 
     env.update_lockfile()
@@ -36,8 +36,8 @@ def test_update_lockfile_minimal_python(workdir, monkeypatch):
     env = appenv.AppEnv(os.path.join(workdir, 'ppytest'), os.getcwd())
     env.init()
 
-    lockfile = os.path.join(workdir, "ppytest", "requirements.lock")
-    requirements_file = os.path.join(workdir, "ppytest", "requirements.txt")
+    lockfile = os.path.join(workdir, "ppytest", "requirements.txt")
+    requirements_file = os.path.join(workdir, "ppytest", "requirements.in")
 
     with open(requirements_file, "r+") as f:
         lines = f.readlines()
@@ -68,7 +68,7 @@ def test_update_lockfile_missing_minimal_python(workdir, monkeypatch):
     env = appenv.AppEnv(os.path.join(workdir, 'ppytest'), os.getcwd())
     env.init()
 
-    requirements_file = os.path.join(workdir, "ppytest", "requirements.txt")
+    requirements_file = os.path.join(workdir, "ppytest", "requirements.in")
 
     with open(requirements_file, "r+") as f:
         lines = f.readlines()

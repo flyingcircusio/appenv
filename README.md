@@ -23,7 +23,7 @@ Done. You can now `cd ducker` and call `./ducker` to bootstrap and run it.
 
 $ cd ducker
 $ ./ducker
-Running unclean installation from requirements.txt
+Running unclean installation from requirements.in
 Ensuring unclean install ...
 Please initiate a query.
 Ducker (? for help) q
@@ -56,7 +56,7 @@ either detect the newest Python or select the best python of your choice.
 
 Two disable the automatic detection of the newest version and provide a
 list of acceptable Python versions (tried in the order you list them)
-add the following line to your requirements.txt file:
+add the following line to your requirements.in file:
 
 ```
 # appenv-python-preference: 3.6,3.9,3.8

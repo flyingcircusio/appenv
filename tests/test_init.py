@@ -20,7 +20,7 @@ def test_init(workdir, monkeypatch):
         original_appenv = f.read()
     assert ducker_appenv == original_appenv
 
-    with open(os.path.join(workdir, "ducker", "requirements.txt")) as f:
+    with open(os.path.join(workdir, "ducker", "requirements.in")) as f:
         requirements = f.read()
 
     assert requirements == "ducker\n"
@@ -37,7 +37,7 @@ def test_init(workdir, monkeypatch):
         original_appenv = f.read()
     assert ducker_appenv == original_appenv
 
-    with open(os.path.join(workdir, "ducker", "requirements.txt")) as f:
+    with open(os.path.join(workdir, "ducker", "requirements.in")) as f:
         requirements = f.read()
 
     assert requirements == "ducker\n"
@@ -55,7 +55,7 @@ def test_init_explicit_target(workdir, monkeypatch):
     with open(appenv.__file__) as f:
         original_appenv = f.read()
 
-    with open(os.path.join(workdir, "baz", "requirements.txt")) as f:
+    with open(os.path.join(workdir, "baz", "requirements.in")) as f:
         requirements = f.read()
 
     assert requirements == "ducker\n"
@@ -74,7 +74,7 @@ def test_init_explicit_package_and_target(workdir, monkeypatch):
     with open(appenv.__file__) as f:
         original_appenv = f.read()
 
-    with open(os.path.join(workdir, "baz", "requirements.txt")) as f:
+    with open(os.path.join(workdir, "baz", "requirements.in")) as f:
         requirements = f.read()
 
     assert requirements == "bar\n"

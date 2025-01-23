@@ -7,7 +7,7 @@
 #   - the appenv file is placed in a repo with the name of the application
 #   - the name of the application/file is an entrypoint XXX
 #   - python3.X+ with ensurepip
-#   - a requirements.txt file next to the appenv file
+#   - a requirements.in file next to the appenv file
 
 # TODO
 #
@@ -144,8 +144,8 @@ def ensure_venv(target):
 
 def parse_preferences():
     preferences = None
-    if os.path.exists('requirements.txt'):
-        with open('requirements.txt') as f:
+    if os.path.exists('requirements.in'):
+        with open('requirements.in') as f:
             for line in f:
                 # Expected format:
                 # # appenv-python-preference: 3.1,3.9,3.4
@@ -165,7 +165,7 @@ def ensure_minimal_python():
         # We have no preferences defined, use the current python.
         print("Updating lockfile with with {}.".format(current_python))
         print("If you want to use a different version, set it via")
-        print(" `# appenv-python-preference:` in requirements.txt.")
+        print(" `# appenv-python-preference:` in requirements.in.")
         return
 
     preferences.sort(key=lambda s: [int(u) for u in s.split('.')])
@@ -192,7 +192,7 @@ def ensure_minimal_python():
         os.execv(python, argv)
     else:
         print("Could not find the minimal preferred Python version.")
-        print("To ensure a working requirements.lock on all Python versions")
+        print("To ensure a working requirements.txt on all Python versions")
         print("make Python {} available on this system.".format(
             preferences[0]))
         sys.exit(66)
@@ -213,8 +213,7 @@ def ensure_best_python(base):
         if sys.version_info >= (3, 12):
             print("You are using a Python version >= 3.12.")
             print(
-                "Please specify a Python version in the requirements.txt file."
-            )
+                "Please specify a Python version in the requirements.in file.")
             print("Lockfiles created with a Python version lower than 3.12")
             print("may create a broken venv with a Python version >= 3.12.")
         # use newest Python available if nothing else is requested
@@ -373,39 +372,39 @@ class AppEnv(object):
         os.execv(cmd, argv)
 
     def _assert_requirements_lock(self):
-        if not os.path.exists('requirements.lock'):
-            print('No requirements.lock found. Generate it using'
+        if not os.path.exists('requirements.txt'):
+            print('No requirements.txt found. Generate it using'
                   ' ./appenv update-lockfile')
             sys.exit(67)
 
-        with open('requirements.lock') as f:
+        with open('requirements.txt') as f:
             locked_hash = None
             for line in f:
                 if line.startswith("# appenv-requirements-hash: "):
                     locked_hash = line.split(':')[1].strip()
                     break
             if locked_hash != self._hash_requirements():
-                print('requirements.txt seems out of date (hash mismatch). '
+                print('requirements.in seems out of date (hash mismatch). '
                       'Regenerate using ./appenv update-lockfile')
                 sys.exit(67)
 
     def _hash_requirements(self):
-        with open('requirements.txt', 'rb') as f:
+        with open('requirements.in', 'rb') as f:
             hash_content = f.read()
         return hashlib.new("sha256", hash_content).hexdigest()
 
     def prepare(self, args=None, remaining=None):
-        # copy used requirements.txt into the target directory so we can use
+        # copy used requirements.in into the target directory so we can use
         # that to check later
         # - when to clean up old versions? keep like one or two old revisions?
-        # - enumerate the revisions and just copy the requirements.txt, check
+        # - enumerate the revisions and just copy the requirements.in, check
         #   for ones that are clean or rebuild if necessary
         os.chdir(self.base)
 
         self._assert_requirements_lock()
 
         hash_content = []
-        with open("requirements.lock", "rb") as f:
+        with open("requirements.txt", "rb") as f:
             requirements = f.read()
         hash_content.append(os.fsencode(os.path.realpath(sys.executable)))
         hash_content.append(requirements)
@@ -443,13 +442,13 @@ class AppEnv(object):
         if not os.path.exists(env_dir):
             ensure_venv(env_dir)
 
-            with open(os.path.join(env_dir, "requirements.lock"), "wb") as f:
+            with open(os.path.join(env_dir, "requirements.txt"), "wb") as f:
                 f.write(requirements)
 
             print("Installing ...")
             pip(env_dir, [
                 "install", "--no-deps", "-r",
-                "{env_dir}/requirements.lock".format(env_dir=env_dir)])
+                "{env_dir}/requirements.txt".format(env_dir=env_dir)])
             pip(env_dir, ["check"])
 
             with open(os.path.join(env_dir, "appenv.ready"), "w") as f:
@@ -495,7 +494,7 @@ class AppEnv(object):
         if os.path.exists(command):
             os.unlink(command)
         os.symlink('appenv', command)
-        with open("requirements.txt", "w") as requirements_txt:
+        with open("requirements.in", "w") as requirements_txt:
             requirements_txt.write(dependency + "\n")
         print()
         print("Done. You can now `cd {}` and call"
@@ -523,7 +522,7 @@ class AppEnv(object):
             cmd(["rm", "-rf", tmpdir])
         ensure_venv(tmpdir)
         print("Installing packages ...")
-        pip(tmpdir, ["install", "-r", "requirements.txt"])
+        pip(tmpdir, ["install", "-r", "requirements.in"])
 
         extra_specs = []
         result = pip(
@@ -538,7 +537,7 @@ class AppEnv(object):
             parsed_requirement = parse_requirement_string(line)
             pinned_versions[parsed_requirement.name] = parsed_requirement
         requested_versions = {}
-        with open('requirements.txt') as f:
+        with open('requirements.in') as f:
             for line in f.readlines():
                 if line.strip().startswith('-e '):
                     extra_specs.append(line.strip())
@@ -568,7 +567,7 @@ class AppEnv(object):
         lines = [str(spec) for spec in final_versions.values()]
         lines.extend(extra_specs)
         lines.sort()
-        with open(os.path.join(self.base, "requirements.lock"), "w") as f:
+        with open(os.path.join(self.base, "requirements.txt"), "w") as f:
             f.write('# appenv-requirements-hash: {}\n'.format(
                 self._hash_requirements()))
             f.write('\n'.join(lines))
