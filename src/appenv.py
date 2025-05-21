@@ -118,11 +118,13 @@ def ensure_venv(target):
 
             cmd(["tar", "xf", download, "-C", tmp_base])
 
-            assert os.path.exists(os.path.join(tmp_base, "Python-{}".format(version)))
+            assert os.path.exists(
+                os.path.join(tmp_base, "Python-{}".format(version)))
             for module in ["ensurepip"]:
                 print(module)
                 shutil.copytree(
-                    os.path.join(tmp_base, "Python-{}".format(version), "Lib", module),
+                    os.path.join(tmp_base, "Python-{}".format(version), "Lib",
+                                 module),
                     os.path.join(
                         target,
                         "lib",
@@ -135,10 +137,11 @@ def ensure_venv(target):
             # (always) prepend the site packages so we can actually have a
             # fixed installation.
             site_packages = os.path.abspath(
-                os.path.join(target, "lib", "python" + python_maj_min, "site-packages")
-            )
+                os.path.join(target, "lib", "python" + python_maj_min,
+                             "site-packages"))
             with open(os.path.join(site_packages, "batou.pth"), "w") as f:
-                f.write("import sys; sys.path.insert(0, '{}')\n".format(site_packages))
+                f.write("import sys; sys.path.insert(0, '{}')\n".format(
+                    site_packages))
 
         finally:
             shutil.rmtree(tmp_base)
@@ -201,7 +204,8 @@ def ensure_minimal_python():
     else:
         print("Could not find the minimal preferred Python version.")
         print("To ensure a working requirements.lock on all Python versions")
-        print("make Python {} available on this system.".format(preferences[0]))
+        print("make Python {} available on this system.".format(
+            preferences[0]))
         sys.exit(66)
 
 
@@ -219,7 +223,9 @@ def ensure_best_python(base):
     if preferences is None:
         if sys.version_info >= (3, 12):
             print("You are using a Python version >= 3.12.")
-            print("Please specify a Python version in the requirements.txt file.")
+            print(
+                "Please specify a Python version in the requirements.txt file."
+            )
             print("Lockfiles created with a Python version lower than 3.12")
             print("may create a broken venv with a Python version >= 3.12.")
         # use newest Python available if nothing else is requested
@@ -302,13 +308,13 @@ def parse_requirement_string(requirement_string):
     # - We will not parse extras, specifiers, or markers.
 
     # check for name
-    name_match = re.search(
-        f"^(?:{whitespace_regex})?{identifier_regex}", requirement_string
-    )
+    name_match = re.search(f"^(?:{whitespace_regex})?{identifier_regex}",
+                           requirement_string)
     name = name_match.group() if name_match else None
     # check for URL
     url_match = re.search(
-        f"@(?:{whitespace_regex})?(?P<url>{url_regex})" f"(?:{whitespace_regex})?;?",
+        f"@(?:{whitespace_regex})?(?P<url>{url_regex})"
+        f"(?:{whitespace_regex})?;?",
         requirement_string,
     )
     url = url_match.group("url") if url_match else None
@@ -343,7 +349,8 @@ class AppEnv(object):
         # Parse the appenv arguments
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers()
-        p = subparsers.add_parser("update-lockfile", help="Update the lock file.")
+        p = subparsers.add_parser(
+            "update-lockfile", help="Update the lock file.")
         p.set_defaults(func=self.update_lockfile)
 
         p = subparsers.add_parser("init", help="Create a new appenv project.")
@@ -356,13 +363,12 @@ class AppEnv(object):
         p.set_defaults(func=self.prepare)
 
         p = subparsers.add_parser(
-            "python", help="Spawn the embedded Python interpreter REPL"
-        )
+            "python", help="Spawn the embedded Python interpreter REPL")
         p.set_defaults(func=self.python)
 
         p = subparsers.add_parser(
-            "run", help="Run a script from the bin/ directory of the virtual env."
-        )
+            "run",
+            help="Run a script from the bin/ directory of the virtual env.")
         p.add_argument("script", help="Name of the script to run.")
         p.set_defaults(func=self.run_script)
 
@@ -383,10 +389,8 @@ class AppEnv(object):
 
     def _assert_requirements_lock(self):
         if not os.path.exists("requirements.lock"):
-            print(
-                "No requirements.lock found. Generate it using"
-                " ./appenv update-lockfile"
-            )
+            print("No requirements.lock found. Generate it using"
+                  " ./appenv update-lockfile")
             sys.exit(67)
 
         with open("requirements.lock") as f:
@@ -396,10 +400,8 @@ class AppEnv(object):
                     locked_hash = line.split(":")[1].strip()
                     break
             if locked_hash != self._hash_requirements():
-                print(
-                    "requirements.txt seems out of date (hash mismatch). "
-                    "Regenerate using ./appenv update-lockfile"
-                )
+                print("requirements.txt seems out of date (hash mismatch). "
+                      "Regenerate using ./appenv update-lockfile")
                 sys.exit(67)
 
     def _hash_requirements(self):
@@ -424,17 +426,16 @@ class AppEnv(object):
         hash_content.append(requirements)
         with open(__file__, "rb") as f:
             hash_content.append(f.read())
-        env_hash = hashlib.new("sha256", b"".join(hash_content)).hexdigest()[:8]
+        env_hash = hashlib.new("sha256",
+                               b"".join(hash_content)).hexdigest()[:8]
         env_dir = os.path.join(self.appenv_dir, env_hash)
 
-        whitelist = set(
-            [
-                env_dir,
-                os.path.join(self.appenv_dir, "unclean"),
-                os.path.join(self.appenv_dir, "current"),
-            ]
-        )
-        for path in glob.glob("{appenv_dir}/*".format(appenv_dir=self.appenv_dir)):
+        whitelist = set([
+            env_dir,
+            os.path.join(self.appenv_dir, "unclean"),
+            os.path.join(self.appenv_dir, "current"),])
+        for path in glob.glob(
+                "{appenv_dir}/*".format(appenv_dir=self.appenv_dir)):
             if path not in whitelist:
                 print("Removing expired path: {path} ...".format(path=path))
                 if not os.path.isdir(path):
@@ -447,7 +448,8 @@ class AppEnv(object):
             # interruptions to running services, but that isn't what we're
             # using it for at the  moment
             try:
-                if not os.path.exists("{env_dir}/appenv.ready".format(env_dir=env_dir)):
+                if not os.path.exists(
+                        "{env_dir}/appenv.ready".format(env_dir=env_dir)):
                     raise Exception()
             except Exception:
                 print("Existing envdir not consistent, deleting")
@@ -466,8 +468,7 @@ class AppEnv(object):
                     "install",
                     "--no-deps",
                     "-r",
-                    "{env_dir}/requirements.lock".format(env_dir=env_dir),
-                ],
+                    "{env_dir}/requirements.lock".format(env_dir=env_dir),],
             )
             pip(env_dir, ["check"])
 
@@ -496,20 +497,16 @@ class AppEnv(object):
         lib_dir = os.path.join(self.env_dir, "lib")
         try:
             python_dirs = [
-                d
-                for d in os.listdir(lib_dir)
-                if d.startswith("python")
-                and os.path.isdir(os.path.join(lib_dir, d, "site-packages"))
-            ]
-            site_packages = os.path.join(lib_dir, python_dirs[0], "site-packages")
+                d for d in os.listdir(lib_dir) if d.startswith("python")
+                and os.path.isdir(os.path.join(lib_dir, d, "site-packages"))]
+            site_packages = os.path.join(lib_dir, python_dirs[0],
+                                         "site-packages")
         except Exception:
             site_packages = None
 
         interpreter_path = os.path.join(self.env_dir, "bin", "python")
 
-        settings = {
-            "python.defaultInterpreterPath": interpreter_path,
-        }
+        settings = {"python.defaultInterpreterPath": interpreter_path}
 
         if site_packages:
             settings["python.analysis.extraPaths"] = [site_packages]
@@ -541,7 +538,8 @@ class AppEnv(object):
 
         site_packages_base = os.path.join(self.env_dir, "lib")
         if not os.path.isdir(site_packages_base):
-            print(f"[appenv] lib/ not found under env_dir: {site_packages_base}")
+            print(
+                f"[appenv] lib/ not found under env_dir: {site_packages_base}")
             return
 
         site_packages = None
@@ -566,11 +564,14 @@ class AppEnv(object):
             entries = os.listdir(full_path)
             has_init = "__init__.py" in entries
             has_py_files = any(f.endswith(".py") for f in entries)
-            has_dirs = any(os.path.isdir(os.path.join(full_path, e)) for e in entries)
+            has_dirs = any(
+                os.path.isdir(os.path.join(full_path, e)) for e in entries)
 
             if not has_init and not has_py_files and has_dirs:
                 init_path = os.path.join(full_path, "__init__.py")
-                print(f"[appenv] Creating __init__.py in namespace root: {full_path}")
+                print("[appenv] Creating __init__.py in namespace root: "
+                      f"{full_path}")
+
                 open(init_path, "a").close()
 
     def init(self, args=None, remaining=None):
@@ -579,14 +580,14 @@ class AppEnv(object):
         while not command:
             command = input("What should the command be named? ").strip()
         dependency = input(
-            "What is the main dependency as found on PyPI? [{}] ".format(command)
-        ).strip()
+            "What is the main dependency as found on PyPI? [{}] ".format(
+                command)).strip()
         if not dependency:
             dependency = command
-        default_target = os.path.abspath(os.path.join(self.original_cwd, command))
-        target = input(
-            "Where should we create this? [{}] ".format(default_target)
-        ).strip()
+        default_target = os.path.abspath(
+            os.path.join(self.original_cwd, command))
+        target = input("Where should we create this? [{}] ".format(
+            default_target)).strip()
         if target:
             target = os.path.join(self.original_cwd, target)
         else:
@@ -608,12 +609,9 @@ class AppEnv(object):
         with open("requirements.txt", "w") as requirements_txt:
             requirements_txt.write(dependency + "\n")
         print()
-        print(
-            "Done. You can now `cd {}` and call"
-            " `./{}` to bootstrap and run it.".format(
-                os.path.relpath(target, self.original_cwd), command
-            )
-        )
+        print("Done. You can now `cd {}` and call"
+              " `./{}` to bootstrap and run it.".format(
+                  os.path.relpath(target, self.original_cwd), command))
 
     def python(self, args, remaining):
         self.run("python", remaining)
@@ -624,9 +622,7 @@ class AppEnv(object):
     def reset(self, args=None, remaining=None):
         print(
             "Resetting ALL application environments in {appenvdir} ...".format(
-                appenvdir=self.appenv_dir
-            )
-        )
+                appenvdir=self.appenv_dir))
         cmd(["rm", "-rf", self.appenv_dir])
 
     def update_lockfile(self, args=None, remaining=None):
@@ -642,8 +638,8 @@ class AppEnv(object):
 
         extra_specs = []
         result = pip(
-            tmpdir, ["freeze", "--all", "--exclude", "pip"], merge_stderr=False
-        ).decode("ascii")
+            tmpdir, ["freeze", "--all", "--exclude", "pip"],
+            merge_stderr=False).decode("ascii")
         # They changed this behaviour in https://github.com/pypa/pip/pull/12032
         pinned_versions = {}
         for line in result.splitlines():
@@ -666,7 +662,8 @@ class AppEnv(object):
                 if line.strip().startswith("#"):
                     continue
                 parsed_requirement = parse_requirement_string(line)
-                requested_versions[parsed_requirement.name] = parsed_requirement
+                requested_versions[
+                    parsed_requirement.name] = parsed_requirement
 
         final_versions = {}
         for spec in requested_versions.values():
@@ -683,9 +680,8 @@ class AppEnv(object):
         lines.extend(extra_specs)
         lines.sort()
         with open(os.path.join(self.base, "requirements.lock"), "w") as f:
-            f.write(
-                "# appenv-requirements-hash: {}\n".format(self._hash_requirements())
-            )
+            f.write("# appenv-requirements-hash: {}\n".format(
+                self._hash_requirements()))
             f.write("\n".join(lines))
             f.write("\n")
         cmd(["rm", "-rf", tmpdir])
