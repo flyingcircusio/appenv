@@ -62,6 +62,14 @@ def pip(path, c, **kwargs):
     return python(path, ["-m", "pip"] + c, **kwargs)
 
 
+def pip_compile(use_uv, path, c, **kwargs):
+    if use_uv:
+        return cmd([os.path.join(path, "bin/uv"), "pip", "compile"] + c,
+                   **kwargs)
+    else:
+        return cmd([os.path.join(path, "bin/pip-compile")] + c, **kwargs)
+
+
 def get(host, path, f):
     conn = http.client.HTTPSConnection(host)
     conn.request("GET", path)
@@ -140,6 +148,19 @@ def ensure_venv(target):
     print("Ensuring pip ...")
     python(target, ["-m", "ensurepip", "--default-pip"])
     pip(target, ["install", "--upgrade", "pip"])
+
+    # try to install uv
+    print("Ensuring uv ...")
+    uses_uv_pip_compile = False
+    try:
+        pip(target, ["install", "uv"])
+        uses_uv_pip_compile = True
+    except ValueError:
+        print("uv not available, falling back to pip-compile")
+        # pip-compile is not available in the venv, so we need to install it
+        # in the system python
+        cmd(["pip", "install", "pip-tools"])
+    return uses_uv_pip_compile
 
 
 def parse_preferences():
@@ -520,59 +541,17 @@ class AppEnv(object):
         tmpdir = os.path.join(self.appenv_dir, "updatelock")
         if os.path.exists(tmpdir):
             cmd(["rm", "-rf", tmpdir])
-        ensure_venv(tmpdir)
-        print("Installing packages ...")
-        pip(tmpdir, ["install", "-r", "requirements.in"])
+        has_uv = ensure_venv(tmpdir)
+        # print("Installing packages ...")
+        # use uv pip compile or pip-compile to generate the requirements.txt
 
-        extra_specs = []
-        result = pip(
-            tmpdir, ["freeze", "--all", "--exclude", "pip"],
-            merge_stderr=False).decode('ascii')
-        # They changed this behaviour in https://github.com/pypa/pip/pull/12032
-        pinned_versions = {}
-        for line in result.splitlines():
-            if line.strip().startswith('-e '):
-                # We'd like to pick up the original -e statement here.
-                continue
-            parsed_requirement = parse_requirement_string(line)
-            pinned_versions[parsed_requirement.name] = parsed_requirement
-        requested_versions = {}
-        with open('requirements.in') as f:
-            for line in f.readlines():
-                if line.strip().startswith('-e '):
-                    extra_specs.append(line.strip())
-                    continue
-                if line.strip().startswith('--'):
-                    extra_specs.append(line.strip())
-                    continue
-
-                # filter comments, in particular # appenv-python-preferences
-                if line.strip().startswith('#'):
-                    continue
-                parsed_requirement = parse_requirement_string(line)
-                requested_versions[
-                    parsed_requirement.name] = parsed_requirement
-
-        final_versions = {}
-        for spec in requested_versions.values():
-            # Pick versions with URLs to ensure we don't get the screwed up
-            # results from pip freeze.
-            if spec.url:
-                final_versions[spec.name] = spec
-        for spec in pinned_versions.values():
-            # Ignore versions we already picked
-            if spec.name in final_versions:
-                continue
-            final_versions[spec.name] = spec
-        lines = [str(spec) for spec in final_versions.values()]
-        lines.extend(extra_specs)
-        lines.sort()
-        with open(os.path.join(self.base, "requirements.txt"), "w") as f:
-            f.write('# appenv-requirements-hash: {}\n'.format(
-                self._hash_requirements()))
-            f.write('\n'.join(lines))
-            f.write('\n')
-        cmd(["rm", "-rf", tmpdir])
+        pip_compile(
+            has_uv,
+            tmpdir, [
+                "--output-file",
+                os.path.join(self.base, "requirements.txt"), "requirements.in"
+            ],
+            merge_stderr=False)
 
 
 def main():
