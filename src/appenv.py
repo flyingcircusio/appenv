@@ -549,9 +549,8 @@ class AppEnv(object):
             has_uv,
             tmpdir, [
                 "--output-file",
-                os.path.join(self.base, "requirements.txt"),
-                "requirements.in"
-                "--generate-hashes",],
+                os.path.join(self.base, "requirements.txt"), "requirements.in",
+                "--generate-hashes"],
             merge_stderr=False)
 
 
