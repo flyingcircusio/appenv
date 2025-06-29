@@ -545,13 +545,21 @@ class AppEnv(object):
         # print("Installing packages ...")
         # use uv pip compile or pip-compile to generate the requirements.txt
 
-        pip_compile(
+        requirements_out = pip_compile(
             has_uv,
             tmpdir, [
-                "--output-file",
-                os.path.join(self.base, "requirements.txt"), "requirements.in",
-                "--generate-hashes"],
+                "requirements.in", "--generate-hashes", "--no-header",
+                "--upgrade"],
             merge_stderr=False)
+
+        requirements_out = requirements_out.decode("utf-8", "replace")
+        # prepend appenv-requirements-hash
+        requirements_hash = self._hash_requirements()
+        requirements_out = (
+            "# appenv-requirements-hash: {}\n".format(requirements_hash) +
+            requirements_out)
+        with open("requirements.txt", "w") as f:
+            f.write(requirements_out)
 
 
 def main():
