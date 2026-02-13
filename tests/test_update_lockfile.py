@@ -8,9 +8,9 @@ import sys
 
 
 def test_init_and_create_lockfile(workdir, monkeypatch):
-    monkeypatch.setattr('sys.stdin', io.StringIO('ducker\nducker<2.0.2\n\n'))
+    monkeypatch.setattr("sys.stdin", io.StringIO("ducker\nducker<2.0.2\n\n"))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ducker'), os.getcwd())
+    env = appenv.AppEnv(os.path.join(workdir, "ducker"), os.getcwd())
     env.init()
 
     lockfile = os.path.join(workdir, "ducker", "requirements.lock")
@@ -21,19 +21,20 @@ def test_init_and_create_lockfile(workdir, monkeypatch):
     assert os.path.exists(lockfile)
     with open(lockfile) as f:
         lockfile_content = f.read()
-    assert """\
+    assert (
+        """\
 # appenv-requirements-hash: ffa75c00de4879b41008d0e9f6b9953cf7d65bb5f5b85d1d049e783b2486614d
-ducker==2.0.1""" in lockfile_content  # noqa
+ducker==2.0.1"""
+        in lockfile_content
+    )  # noqa
 
 
-@pytest.mark.skipif(
-    sys.version_info[0:2] != (3, 6), reason='Isolated CI builds')
+@pytest.mark.skipif(sys.version_info[0:2] != (3, 6), reason="Isolated CI builds")
 def test_update_lockfile_minimal_python(workdir, monkeypatch):
     """It uses the minimal python version even if it is not best python."""
-    monkeypatch.setattr('sys.stdin',
-                        io.StringIO('pytest\npytest==6.1.2\nppytest\n'))
+    monkeypatch.setattr("sys.stdin", io.StringIO("pytest\npytest==6.1.2\nppytest\n"))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ppytest'), os.getcwd())
+    env = appenv.AppEnv(os.path.join(workdir, "ppytest"), os.getcwd())
     env.init()
 
     lockfile = os.path.join(workdir, "ppytest", "requirements.lock")
@@ -58,14 +59,12 @@ def test_update_lockfile_minimal_python(workdir, monkeypatch):
     assert "typing-extensions==" in lockfile_content
 
 
-@pytest.mark.skipif(
-    sys.version_info[0:2] < (3, 8), reason='Isolated CI builds')
+@pytest.mark.skipif(sys.version_info[0:2] < (3, 8), reason="Isolated CI builds")
 def test_update_lockfile_missing_minimal_python(workdir, monkeypatch):
     """It raises an error if the minimal python is not available."""
-    monkeypatch.setattr('sys.stdin',
-                        io.StringIO('pytest\npytest==6.1.2\nppytest\n'))
+    monkeypatch.setattr("sys.stdin", io.StringIO("pytest\npytest==6.1.2\nppytest\n"))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ppytest'), os.getcwd())
+    env = appenv.AppEnv(os.path.join(workdir, "ppytest"), os.getcwd())
     env.init()
 
     requirements_file = os.path.join(workdir, "ppytest", "requirements.txt")
@@ -84,7 +83,7 @@ def test_update_lockfile_missing_minimal_python(workdir, monkeypatch):
         else:
             return old_which(string)
 
-    with unittest.mock.patch('shutil.which') as which:
+    with unittest.mock.patch("shutil.which") as which:
         which.side_effect = new_which
         with pytest.raises(SystemExit) as e:
             env.update_lockfile()
@@ -98,10 +97,12 @@ def test_parse_requirement_name():
         "foo[bar,baz]~=1.0",
         "foo==1.0",
         "foo[bar,baz]!=1.0",
-        "foo<1.0",]
+        "foo<1.0",
+    ]
     req_strings_with_url = [
         "foo[bar,baz] @ https://example.com",
-        "foo[bar,baz] @ https://example.com ; python_version < '3.6'",]
+        "foo[bar,baz] @ https://example.com ; python_version < '3.6'",
+    ]
     for req_string in req_strings_without_url:
         req = appenv.parse_requirement_string(req_string)
         assert req.name == "foo"

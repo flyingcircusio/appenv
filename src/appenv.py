@@ -30,10 +30,11 @@ import re
 
 class TColors:
     """Terminal colors for pretty output."""
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RESET = '\033[0m'
+
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RESET = "\033[0m"
 
 
 def cmd(c, merge_stderr=True, quiet=False):
@@ -109,30 +110,35 @@ def ensure_venv(target):
         try:
             download = os.path.join(tmp_base, "download.tar.gz")
             with open(download, mode="wb") as f:
-                get("www.python.org",
-                    "/ftp/python/{v}/Python-{v}.tgz".format(v=version), f)
+                get(
+                    "www.python.org",
+                    "/ftp/python/{v}/Python-{v}.tgz".format(v=version),
+                    f,
+                )
 
             cmd(["tar", "xf", download, "-C", tmp_base])
 
-            assert os.path.exists(
-                os.path.join(tmp_base, "Python-{}".format(version)))
+            assert os.path.exists(os.path.join(tmp_base, "Python-{}".format(version)))
             for module in ["ensurepip"]:
                 print(module)
                 shutil.copytree(
-                    os.path.join(tmp_base, "Python-{}".format(version), "Lib",
-                                 module),
-                    os.path.join(target, "lib",
-                                 "python{}.{}".format(*sys.version_info[:2]),
-                                 "site-packages", module))
+                    os.path.join(tmp_base, "Python-{}".format(version), "Lib", module),
+                    os.path.join(
+                        target,
+                        "lib",
+                        "python{}.{}".format(*sys.version_info[:2]),
+                        "site-packages",
+                        module,
+                    ),
+                )
 
             # (always) prepend the site packages so we can actually have a
             # fixed installation.
             site_packages = os.path.abspath(
-                os.path.join(target, "lib", "python" + python_maj_min,
-                             "site-packages"))
+                os.path.join(target, "lib", "python" + python_maj_min, "site-packages")
+            )
             with open(os.path.join(site_packages, "batou.pth"), "w") as f:
-                f.write("import sys; sys.path.insert(0, '{}')\n".format(
-                    site_packages))
+                f.write("import sys; sys.path.insert(0, '{}')\n".format(site_packages))
 
         finally:
             shutil.rmtree(tmp_base)
@@ -144,15 +150,15 @@ def ensure_venv(target):
 
 def parse_preferences():
     preferences = None
-    if os.path.exists('requirements.txt'):
-        with open('requirements.txt') as f:
+    if os.path.exists("requirements.txt"):
+        with open("requirements.txt") as f:
             for line in f:
                 # Expected format:
                 # # appenv-python-preference: 3.1,3.9,3.4
                 if not line.startswith("# appenv-python-preference: "):
                     continue
-                preferences = line.split(':')[1]
-                preferences = [x.strip() for x in preferences.split(',')]
+                preferences = line.split(":")[1]
+                preferences = [x.strip() for x in preferences.split(",")]
                 preferences = list(filter(None, preferences))
                 break
     return preferences
@@ -168,7 +174,7 @@ def ensure_minimal_python():
         print(" `# appenv-python-preference:` in requirements.txt.")
         return
 
-    preferences.sort(key=lambda s: [int(u) for u in s.split('.')])
+    preferences.sort(key=lambda s: [int(u) for u in s.split(".")])
 
     for version in preferences[0:1]:
         python = shutil.which("python{}".format(version))
@@ -181,9 +187,11 @@ def ensure_minimal_python():
             break
         # Try whether this Python works
         try:
-            subprocess.check_call([python, "-c", "print(1)"],
-                                  stdout=subprocess.DEVNULL,
-                                  stderr=subprocess.DEVNULL)
+            subprocess.check_call(
+                [python, "-c", "print(1)"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         except subprocess.CalledProcessError:
             continue
 
@@ -193,8 +201,7 @@ def ensure_minimal_python():
     else:
         print("Could not find the minimal preferred Python version.")
         print("To ensure a working requirements.lock on all Python versions")
-        print("make Python {} available on this system.".format(
-            preferences[0]))
+        print("make Python {} available on this system.".format(preferences[0]))
         sys.exit(66)
 
 
@@ -212,13 +219,11 @@ def ensure_best_python(base):
     if preferences is None:
         if sys.version_info >= (3, 12):
             print("You are using a Python version >= 3.12.")
-            print(
-                "Please specify a Python version in the requirements.txt file."
-            )
+            print("Please specify a Python version in the requirements.txt file.")
             print("Lockfiles created with a Python version lower than 3.12")
             print("may create a broken venv with a Python version >= 3.12.")
         # use newest Python available if nothing else is requested
-        preferences = ['3.{}'.format(x) for x in reversed(range(4, 20))]
+        preferences = ["3.{}".format(x) for x in reversed(range(4, 20))]
 
     current_python = os.path.realpath(sys.executable)
     for version in preferences:
@@ -232,9 +237,11 @@ def ensure_best_python(base):
             break
         # Try whether this Python works
         try:
-            subprocess.check_call([python, "-c", "print(1)"],
-                                  stdout=subprocess.DEVNULL,
-                                  stderr=subprocess.DEVNULL)
+            subprocess.check_call(
+                [python, "-c", "print(1)"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         except subprocess.CalledProcessError:
             continue
         argv = [os.path.basename(python)] + sys.argv
@@ -242,7 +249,7 @@ def ensure_best_python(base):
         os.execv(python, argv)
     else:
         print("Could not find a preferred Python version.")
-        print("Preferences: {}".format(', '.join(preferences)))
+        print("Preferences: {}".format(", ".join(preferences)))
         sys.exit(65)
 
 
@@ -295,20 +302,21 @@ def parse_requirement_string(requirement_string):
     # - We will not parse extras, specifiers, or markers.
 
     # check for name
-    name_match = re.search(f"^(?:{whitespace_regex})?{identifier_regex}",
-                           requirement_string)
+    name_match = re.search(
+        f"^(?:{whitespace_regex})?{identifier_regex}", requirement_string
+    )
     name = name_match.group() if name_match else None
     # check for URL
     url_match = re.search(
-        f"@(?:{whitespace_regex})?(?P<url>{url_regex})"
-        f"(?:{whitespace_regex})?;?", requirement_string)
-    url = url_match.group('url') if url_match else None
+        f"@(?:{whitespace_regex})?(?P<url>{url_regex})(?:{whitespace_regex})?;?",
+        requirement_string,
+    )
+    url = url_match.group("url") if url_match else None
 
     return ParsedRequirement(name, url, requirement_string)
 
 
 class AppEnv(object):
-
     base = None  # The directory where we add the environments. Co-located
     # with the application script - not necessarily the appenv
     # script so we can link to an appenv script from multiple
@@ -323,7 +331,7 @@ class AppEnv(object):
         # This used to be computed based on the application name but
         # as we can have multiple application names now, we always put the
         # environments into '.appenv'. They're hashed anyway.
-        self.appenv_dir = os.path.join(self.base, '.appenv')
+        self.appenv_dir = os.path.join(self.base, ".appenv")
 
         # Allow simplifying a lot of code by assuming that all the
         # meta-operations happen in the base directory. Store the original
@@ -334,8 +342,7 @@ class AppEnv(object):
         # Parse the appenv arguments
         parser = argparse.ArgumentParser()
         subparsers = parser.add_subparsers()
-        p = subparsers.add_parser(
-            "update-lockfile", help="Update the lock file.")
+        p = subparsers.add_parser("update-lockfile", help="Update the lock file.")
         p.set_defaults(func=self.update_lockfile)
 
         p = subparsers.add_parser("init", help="Create a new appenv project.")
@@ -344,53 +351,57 @@ class AppEnv(object):
         p = subparsers.add_parser("reset", help="Reset the environment.")
         p.set_defaults(func=self.reset)
 
-        p = subparsers.add_parser('prepare', help='Prepare the venv.')
+        p = subparsers.add_parser("prepare", help="Prepare the venv.")
         p.set_defaults(func=self.prepare)
 
         p = subparsers.add_parser(
-            "python", help="Spawn the embedded Python interpreter REPL")
+            "python", help="Spawn the embedded Python interpreter REPL"
+        )
         p.set_defaults(func=self.python)
 
         p = subparsers.add_parser(
-            "run",
-            help="Run a script from the bin/ directory of the virtual env.")
+            "run", help="Run a script from the bin/ directory of the virtual env."
+        )
         p.add_argument("script", help="Name of the script to run.")
         p.set_defaults(func=self.run_script)
 
         args, remaining = parser.parse_known_args()
 
-        if not hasattr(args, 'func'):
+        if not hasattr(args, "func"):
             parser.print_usage()
         else:
             args.func(args, remaining)
 
     def run(self, command, argv):
         self.prepare()
-        cmd = os.path.join(self.env_dir, 'bin', command)
+        cmd = os.path.join(self.env_dir, "bin", command)
         argv = [cmd] + argv
-        os.environ['APPENV_BASEDIR'] = self.base
+        os.environ["APPENV_BASEDIR"] = self.base
         os.chdir(self.original_cwd)
         os.execv(cmd, argv)
 
     def _assert_requirements_lock(self):
-        if not os.path.exists('requirements.lock'):
-            print('No requirements.lock found. Generate it using'
-                  ' ./appenv update-lockfile')
+        if not os.path.exists("requirements.lock"):
+            print(
+                "No requirements.lock found. Generate it using ./appenv update-lockfile"
+            )
             sys.exit(67)
 
-        with open('requirements.lock') as f:
+        with open("requirements.lock") as f:
             locked_hash = None
             for line in f:
                 if line.startswith("# appenv-requirements-hash: "):
-                    locked_hash = line.split(':')[1].strip()
+                    locked_hash = line.split(":")[1].strip()
                     break
             if locked_hash != self._hash_requirements():
-                print('requirements.txt seems out of date (hash mismatch). '
-                      'Regenerate using ./appenv update-lockfile')
+                print(
+                    "requirements.txt seems out of date (hash mismatch). "
+                    "Regenerate using ./appenv update-lockfile"
+                )
                 sys.exit(67)
 
     def _hash_requirements(self):
-        with open('requirements.txt', 'rb') as f:
+        with open("requirements.txt", "rb") as f:
             hash_content = f.read()
         return hashlib.new("sha256", hash_content).hexdigest()
 
@@ -411,16 +422,17 @@ class AppEnv(object):
         hash_content.append(requirements)
         with open(__file__, "rb") as f:
             hash_content.append(f.read())
-        env_hash = hashlib.new("sha256",
-                               b"".join(hash_content)).hexdigest()[:8]
+        env_hash = hashlib.new("sha256", b"".join(hash_content)).hexdigest()[:8]
         env_dir = os.path.join(self.appenv_dir, env_hash)
 
-        whitelist = set([
-            env_dir,
-            os.path.join(self.appenv_dir, "unclean"),
-            os.path.join(self.appenv_dir, 'current')])
-        for path in glob.glob(
-                "{appenv_dir}/*".format(appenv_dir=self.appenv_dir)):
+        whitelist = set(
+            [
+                env_dir,
+                os.path.join(self.appenv_dir, "unclean"),
+                os.path.join(self.appenv_dir, "current"),
+            ]
+        )
+        for path in glob.glob("{appenv_dir}/*".format(appenv_dir=self.appenv_dir)):
             if path not in whitelist:
                 print("Removing expired path: {path} ...".format(path=path))
                 if not os.path.isdir(path):
@@ -433,8 +445,7 @@ class AppEnv(object):
             # interruptions to running services, but that isn't what we're
             # using it for at the  moment
             try:
-                if not os.path.exists(
-                        "{env_dir}/appenv.ready".format(env_dir=env_dir)):
+                if not os.path.exists("{env_dir}/appenv.ready".format(env_dir=env_dir)):
                     raise Exception()
             except Exception:
                 print("Existing envdir not consistent, deleting")
@@ -447,14 +458,20 @@ class AppEnv(object):
                 f.write(requirements)
 
             print("Installing ...")
-            pip(env_dir, [
-                "install", "--no-deps", "-r",
-                "{env_dir}/requirements.lock".format(env_dir=env_dir)])
+            pip(
+                env_dir,
+                [
+                    "install",
+                    "--no-deps",
+                    "-r",
+                    "{env_dir}/requirements.lock".format(env_dir=env_dir),
+                ],
+            )
             pip(env_dir, ["check"])
 
             with open(os.path.join(env_dir, "appenv.ready"), "w") as f:
                 f.write("Ready or not, here I come, you can't hide\n")
-            current_path = os.path.join(self.appenv_dir, 'current')
+            current_path = os.path.join(self.appenv_dir, "current")
             try:
                 os.unlink(current_path)
             except FileNotFoundError:
@@ -469,14 +486,14 @@ class AppEnv(object):
         while not command:
             command = input("What should the command be named? ").strip()
         dependency = input(
-            "What is the main dependency as found on PyPI? [{}] ".format(
-                command)).strip()
+            "What is the main dependency as found on PyPI? [{}] ".format(command)
+        ).strip()
         if not dependency:
             dependency = command
-        default_target = os.path.abspath(
-            os.path.join(self.original_cwd, command))
-        target = input("Where should we create this? [{}] ".format(
-            default_target)).strip()
+        default_target = os.path.abspath(os.path.join(self.original_cwd, command))
+        target = input(
+            "Where should we create this? [{}] ".format(default_target)
+        ).strip()
         if target:
             target = os.path.join(self.original_cwd, target)
         else:
@@ -489,21 +506,23 @@ class AppEnv(object):
         with open(__file__, "rb") as bootstrap_file:
             bootstrap_data = bootstrap_file.read()
         os.chdir(target)
-        with open('appenv', "wb") as new_appenv:
+        with open("appenv", "wb") as new_appenv:
             new_appenv.write(bootstrap_data)
-        os.chmod('appenv', 0o755)
+        os.chmod("appenv", 0o755)
         if os.path.exists(command):
             os.unlink(command)
-        os.symlink('appenv', command)
+        os.symlink("appenv", command)
         with open("requirements.txt", "w") as requirements_txt:
             requirements_txt.write(dependency + "\n")
         print()
-        print("Done. You can now `cd {}` and call"
-              " `./{}` to bootstrap and run it.".format(
-                  os.path.relpath(target, self.original_cwd), command))
+        print(
+            "Done. You can now `cd {}` and call `./{}` to bootstrap and run it.".format(
+                os.path.relpath(target, self.original_cwd), command
+            )
+        )
 
     def python(self, args, remaining):
-        self.run('python', remaining)
+        self.run("python", remaining)
 
     def run_script(self, args, remaining):
         self.run(args.script, remaining)
@@ -511,7 +530,9 @@ class AppEnv(object):
     def reset(self, args=None, remaining=None):
         print(
             "Resetting ALL application environments in {appenvdir} ...".format(
-                appenvdir=self.appenv_dir))
+                appenvdir=self.appenv_dir
+            )
+        )
         cmd(["rm", "-rf", self.appenv_dir])
 
     def update_lockfile(self, args=None, remaining=None):
@@ -527,32 +548,31 @@ class AppEnv(object):
 
         extra_specs = []
         result = pip(
-            tmpdir, ["freeze", "--all", "--exclude", "pip"],
-            merge_stderr=False).decode('ascii')
+            tmpdir, ["freeze", "--all", "--exclude", "pip"], merge_stderr=False
+        ).decode("ascii")
         # They changed this behaviour in https://github.com/pypa/pip/pull/12032
         pinned_versions = {}
         for line in result.splitlines():
-            if line.strip().startswith('-e '):
+            if line.strip().startswith("-e "):
                 # We'd like to pick up the original -e statement here.
                 continue
             parsed_requirement = parse_requirement_string(line)
             pinned_versions[parsed_requirement.name] = parsed_requirement
         requested_versions = {}
-        with open('requirements.txt') as f:
+        with open("requirements.txt") as f:
             for line in f.readlines():
-                if line.strip().startswith('-e '):
+                if line.strip().startswith("-e "):
                     extra_specs.append(line.strip())
                     continue
-                if line.strip().startswith('--'):
+                if line.strip().startswith("--"):
                     extra_specs.append(line.strip())
                     continue
 
                 # filter comments, in particular # appenv-python-preferences
-                if line.strip().startswith('#'):
+                if line.strip().startswith("#"):
                     continue
                 parsed_requirement = parse_requirement_string(line)
-                requested_versions[
-                    parsed_requirement.name] = parsed_requirement
+                requested_versions[parsed_requirement.name] = parsed_requirement
 
         final_versions = {}
         for spec in requested_versions.values():
@@ -569,10 +589,11 @@ class AppEnv(object):
         lines.extend(extra_specs)
         lines.sort()
         with open(os.path.join(self.base, "requirements.lock"), "w") as f:
-            f.write('# appenv-requirements-hash: {}\n'.format(
-                self._hash_requirements()))
-            f.write('\n'.join(lines))
-            f.write('\n')
+            f.write(
+                "# appenv-requirements-hash: {}\n".format(self._hash_requirements())
+            )
+            f.write("\n".join(lines))
+            f.write("\n")
         cmd(["rm", "-rf", tmpdir])
 
 
@@ -591,7 +612,7 @@ def main():
     application_name = os.path.splitext(os.path.basename(__file__))[0]
 
     appenv = AppEnv(base, original_cwd)
-    if application_name == 'appenv':
+    if application_name == "appenv":
         appenv.meta()
     else:
         appenv.run(application_name, sys.argv[1:])

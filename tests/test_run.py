@@ -18,7 +18,7 @@ def test_bootstrap_lockfile_missing_dependency():
 def test_bootstrap_and_run_with_lockfile(workdir, monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO("ducker\nducker==2.0.1\n\n"))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ducker'), os.getcwd())
+    env = appenv.AppEnv(os.path.join(workdir, "ducker"), os.getcwd())
 
     env.init()
     env.update_lockfile()
@@ -37,7 +37,7 @@ def test_bootstrap_and_run_with_lockfile(workdir, monkeypatch):
 def test_bootstrap_and_run_python_with_lockfile(workdir, monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO("ducker\nducker==2.0.1\n\n"))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ducker'), os.getcwd())
+    env = appenv.AppEnv(os.path.join(workdir, "ducker"), os.getcwd())
 
     env.init()
     env.update_lockfile()
@@ -48,8 +48,7 @@ def test_bootstrap_and_run_python_with_lockfile(workdir, monkeypatch):
     with open("ducker", "w") as f:
         f.write(script)
 
-    output = subprocess.check_output(
-        './appenv python -c "print(1)"', shell=True)
+    output = subprocess.check_output('./appenv python -c "print(1)"', shell=True)
     assert output == b"1\n"
 
 
@@ -57,7 +56,7 @@ def test_bootstrap_and_run_without_lockfile(workdir, monkeypatch):
     """It raises as error if no requirements.lock is present."""
     monkeypatch.setattr("sys.stdin", io.StringIO("ducker\nducker==2.0.1\n\n"))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ducker'), os.getcwd())
+    env = appenv.AppEnv(os.path.join(workdir, "ducker"), os.getcwd())
 
     env.init()
 
@@ -71,14 +70,14 @@ def test_bootstrap_and_run_without_lockfile(workdir, monkeypatch):
     with pytest.raises(subprocess.CalledProcessError) as err:
         subprocess.check_output(["./ducker", "--help"])
     assert err.value.output == (
-        b"No requirements.lock found. Generate it using"
-        b" ./appenv update-lockfile\n")
+        b"No requirements.lock found. Generate it using ./appenv update-lockfile\n"
+    )
 
 
 def test_bootstrap_and_run_with_outdated_lockfile(workdir, monkeypatch):
     monkeypatch.setattr("sys.stdin", io.StringIO("ducker\nducker==2.0.1\n\n"))
 
-    env = appenv.AppEnv(os.path.join(workdir, 'ducker'), os.getcwd())
+    env = appenv.AppEnv(os.path.join(workdir, "ducker"), os.getcwd())
 
     env.init()
     env.update_lockfile()
@@ -89,22 +88,24 @@ def test_bootstrap_and_run_with_outdated_lockfile(workdir, monkeypatch):
     with open("ducker", "w") as f:
         f.write(script)
 
-    output = subprocess.check_output(
-        './appenv python -c "print(1)"', shell=True)
+    output = subprocess.check_output('./appenv python -c "print(1)"', shell=True)
     assert output == b"1\n"
 
-    with open("requirements.txt", 'w') as f:
-        f.write('ducker==2.0.1')
+    with open("requirements.txt", "w") as f:
+        f.write("ducker==2.0.1")
 
     s = subprocess.Popen(
-        './appenv python -c "print(1)"', shell=True, stdout=subprocess.PIPE)
+        './appenv python -c "print(1)"', shell=True, stdout=subprocess.PIPE
+    )
     stdout, stderr = s.communicate()
-    assert stdout == b"""\
+    assert (
+        stdout
+        == b"""\
 requirements.txt seems out of date (hash mismatch). Regenerate using ./appenv update-lockfile
-"""  # noqa
+"""
+    )  # noqa
 
-    subprocess.check_call('./appenv update-lockfile', shell=True)
+    subprocess.check_call("./appenv update-lockfile", shell=True)
 
-    output = subprocess.check_output(
-        './appenv python -c "print(1)"', shell=True)
+    output = subprocess.check_output('./appenv python -c "print(1)"', shell=True)
     assert output == b"1\n"
