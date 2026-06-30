@@ -1,0 +1,229 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [ "hatchling>=1.27" ]
+
+[project]
+name = "appenv"
+description = "Self-contained bootstrapping/updating of Python applications deployed through shared repositories."
+readme = "README.md"
+keywords = [ "deployment" ]
+license = "BSD-3-Clause"
+license-files = [ "LICENSE" ]
+requires-python = ">=3.9"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "License :: OSI Approved :: BSD License",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+dynamic = [ "version" ]
+dependencies = []
+[[project.authors]]
+name = "Christian Theune"
+email = "ct@flyingcircus.io"
+[project.scripts]
+appenv = "appenv:main"
+[project.urls]
+Homepage = "https://github.com/flyingcircusio/appenv/"
+Issues = "https://github.com/flyingcircusio/appenv/issues"
+Repository = "https://github.com/flyingcircusio/appenv.git"
+
+[dependency-groups]
+cov = [
+  "complexipy",
+  "vulture",
+]
+dev = [
+  "tox",
+  "tox-uv",
+  { include-group = "docs" },
+  { include-group = "lint" },
+  { include-group = "test" },
+]
+test = [
+  "pip",
+  "pexpect",
+  "pytest",
+  "pytest-cov",
+  "pytest-instafail>=0.5",
+  "pytest-patterns",
+  "pytest-randomly",
+  "pytest-ruff",
+  "pytest-timeout",
+  "pytest-ty",
+  "pytest-xdist",
+  { include-group = "mypy" },
+]
+docs = [
+  "furo",
+  "myst-parser",
+  "sphinx",
+  "sphinx-autoapi",
+  "sphinx-autodoc-typehints",
+  "sphinx-copybutton",
+  "sphinx-design",
+  "sphinx-togglebutton",
+  "sphinx-llm",
+  "sphinxext-opengraph",
+]
+lint = [
+  "pre-commit",
+  "pre-commit-uv",
+  "ruff",
+  "ty",
+  "vulture",
+]
+mypy = [
+    "mypy>=1.19.1",
+    "types-pexpect>=4.9.0.20260127",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = [ ".appenv" ]
+
+[tool.hatch.build.targets.wheel]
+packages = [ "src/appenv.py" ]
+[tool.hatch.version]
+path = "src/appenv.py"
+
+[tool.uv.sources]
+pytest-patterns = { git = "https://github.com/dpausp/pytest-patterns", branch = "ts-ai" }
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+[tool.ruff.lint]
+select = [
+  "B",
+  "C4",
+  "E",
+  "EM",
+  "F",
+  "FLY",
+  "I",
+  "N",
+  "PERF",
+  "RET",
+  "RUF",
+  "SIM",
+  "SLF",
+  "TRY",
+  "UP",
+  "W",
+]
+per-file-ignores."*.pyi" = [ "E501" ]
+per-file-ignores."tests/*" = [ "SLF001" ]
+
+# Supports mypy.stubtest stub-sync enforcement (tools/check_stub_sync.py).
+[tool.mypy]
+mypy_path = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["pytest_patterns.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = [
+  "--junitxml=report.xml",
+  "--instafail",
+  "--ty",
+  "--import-mode=importlib",
+  "--timeout=120",
+  "-W",
+  "error",
+]
+junit_family = "xunit2"
+markers = [
+  "slow: tests that create venvs or install packages",
+  "no_mock_uv_version: disable auto-mock of get_uv_version",
+  "characterization: tests that document current (possibly buggy) behavior; will flip when the underlying smell is fixed",
+  "convention: project convention checks — version-independent, run once in cov only",
+]
+testpaths = [ "tests" ]
+
+[tool.coverage.report]
+precision = 2
+fail_under = 100
+skip_covered = true
+show_missing = true
+
+[tool.coverage.run]
+branch = true
+source = [ "src" ]
+parallel = true
+patch = ["subprocess"]
+
+# Project-specific thresholds for `tysy cov check`. Keys MUST use underscores
+# (TOML distinguishes threshold-over-tested from threshold_over_tested; the loader
+# reads underscores). See tysy_core/infrastructure/config.py:read_tysy_cov_config.
+[tool.tysy.cov]
+threshold_fragmented = 6   # CV201 WARN: hot functions (>6 test fns)
+threshold_over_tested = 9  # CV202 ERROR: only AppEnv.self_update (>9)
+threshold_large_file = 30  # CV301 WARN: test_main.py (86 test fns)
+
+[tool.tox]
+env_list = [ "pre-commit", "3.10", "3.11", "3.12", "3.13", "3.14", "cov" ]
+skip_missing_interpreters = true
+
+[tool.tox.env_run_base]
+package = "wheel"
+runner = "uv-venv-lock-runner"
+setenv = { APPENV_BEST_PYTHON = "{envpython}" }
+dependency_groups = [ "test" ]
+depends = [ "pre-commit" ]
+commands = [ [ "pytest", "-m", "not convention", { replace = "posargs", extend = true } ] ]
+
+[tool.tox.env.cov]
+base_python = [ "3.14" ]
+package = "editable"
+runner = "uv-venv-lock-runner"
+setenv = { APPENV_BEST_PYTHON = "{envpython}" }
+dependency_groups = [ "test", "cov" ]
+depends = [ "pre-commit" ]
+description = "Tests with coverage, complexity analysis, dead code detection"
+commands = [
+  [ "pytest", "--durations=10", "--cov=appenv", "--cov-report=term-missing", "--cov-report=html" ],
+  [ "complexipy", "src/", "--top", "5" ],
+  [ "vulture", "src/" ],
+]
+
+[tool.tox.env.pre-commit]
+description = "Lint, format, type check, and build package"
+skip_install = true
+dependency_groups = ["lint"]
+commands = [
+  ["pre-commit", "run", "--all-files", "--show-diff-on-failure"],
+  ["uv", "build"],
+]
+
+[tool.tox.env.docs]
+description = "Build Sphinx documentation"
+package = "wheel"
+runner = "uv-venv-lock-runner"
+depends = []
+dependency_groups = ["docs"]
+commands = [
+  ["sphinx-build", "-b", "html", "docs", "docs/_build/html", "-W", "--keep-going"],
+]
+
+
+[tool.scriv]
+format = "md"
+fragment_directory = "CHANGES.d"
+output_file = "CHANGES.md"
+version = "unreleased"
+entry_title_template = ""
+new_fragment_template = "- New changelog entry."
+insert_marker = "- Nothing changed yet."
+categories = ""
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true

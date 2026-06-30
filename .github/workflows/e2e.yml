@@ -1,0 +1,155 @@
+name: E2E Tests
+
+on:
+  push:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  # E2E: Debian Bookworm + python3-pip — which(pip) fallback bootstraps uv
+  debian-bookworm-pip:
+    runs-on: ubuntu-24.04
+    container:
+      image: debian:bookworm
+
+    env:
+      APPENV_VERBOSE: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install prerequisites
+        run: apt-get update && apt-get install -y python3 python3-pip ca-certificates
+
+      - name: Bootstrap appenv
+        run: |
+          mkdir /tmp/testproject && cd /tmp/testproject
+
+          cp $GITHUB_WORKSPACE/src/appenv.py appenv
+          chmod +x appenv
+
+          ./appenv init --binary http --dep httpie --python-version 3.11
+
+          ./appenv version
+          python3 --version
+          ./appenv update-lockfile
+      - name: Show project info
+        run: cd /tmp/testproject && ./appenv version && python3 --version
+  # E2E: Bare Debian Bookworm — only python3, astral.sh installer fallback
+  debian-bookworm-minimal:
+    runs-on: ubuntu-24.04
+    container:
+      image: debian:bookworm
+
+    env:
+      APPENV_VERBOSE: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install python3
+        run: apt-get update && apt-get install -y python3 ca-certificates
+
+      - name: Bootstrap appenv (astral.sh installer)
+        run: |
+          mkdir /tmp/testproject && cd /tmp/testproject
+
+          cp $GITHUB_WORKSPACE/src/appenv.py appenv
+          chmod +x appenv
+
+          cat > pyproject.toml << 'EOF'
+          [project]
+          name = "bootstrap-test"
+          version = "0.1.0"
+          dependencies = ["httpie"]
+          requires-python = ">=3.10"
+          EOF
+
+          ./appenv version
+          python3 --version
+          ./appenv update-lockfile
+      - name: Show project info
+        run: cd /tmp/testproject && ./appenv version && python3 --version
+  # E2E: uvx from git — user has only uv, runs uvx appenv init
+  ubuntu-uvx:
+    runs-on: ubuntu-24.04
+
+    env:
+      APPENV_VERBOSE: "1"
+
+    steps:
+      - uses: astral-sh/setup-uv@v7
+
+      - name: uvx appenv init from current branch
+        run: |
+          mkdir /tmp/testproject && cd /tmp/testproject
+          uvx --from git+https://github.com/flyingcircusio/appenv@${{ github.head_ref || github.ref_name }} appenv init --binary http --dep httpie --python-version 3.12
+
+      - name: Show info
+        run: cd /tmp/testproject && ./appenv version && python3 --version
+
+  # E2E: Alpine Linux — musl libc, astral.sh installer must use linux-musl triple
+  alpine-musl:
+    runs-on: ubuntu-24.04
+    container:
+      image: alpine:latest
+
+    env:
+      APPENV_VERBOSE: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install python3 + ca-certificates
+        run: apk add python3 ca-certificates
+
+      - name: Bootstrap appenv (musl installer)
+        run: |
+          mkdir /tmp/testproject && cd /tmp/testproject
+
+          cp $GITHUB_WORKSPACE/src/appenv.py appenv
+          chmod +x appenv
+
+          cat > pyproject.toml << 'EOF'
+          [project]
+          name = "bootstrap-test"
+          version = "0.1.0"
+          dependencies = ["httpie"]
+          requires-python = ">=3.10"
+          EOF
+
+          ./appenv version
+          python3 --version
+          ./appenv update-lockfile
+      - name: Show project info
+        run: cd /tmp/testproject && ./appenv version && python3 --version
+  # E2E: macOS ARM64 — native aarch64-apple-darwin, tests Apple Silicon triple
+  macos-arm64:
+    runs-on: macos-14
+
+    env:
+      APPENV_VERBOSE: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bootstrap appenv (macOS ARM64)
+        run: |
+          mkdir /tmp/testproject && cd /tmp/testproject
+
+          cp $GITHUB_WORKSPACE/src/appenv.py appenv
+          chmod +x appenv
+
+          cat > pyproject.toml << 'EOF'
+          [project]
+          name = "bootstrap-test"
+          version = "0.1.0"
+          dependencies = ["httpie"]
+          requires-python = ">=3.10"
+          EOF
+
+          ./appenv version
+          python3 --version
+          ./appenv update-lockfile
+      - name: Show project info
+        run: cd /tmp/testproject && ./appenv version && python3 --version

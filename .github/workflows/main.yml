@@ -1,65 +1,34 @@
-# This is a basic workflow to help you get started with Actions
+name: Tox Tests
 
-name: Unit tests
-
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
 on:
   push:
   pull_request:
-    type: [ "opened", "reopened", "synchronize" ]
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build-old-python:
+  build:
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.6', '3.7']
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
-    # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Runs a set of commands using the runners shell
-      - name: Setup
-        run: pip install tox
-
-      - name: Show environment
-        run: set
-
-      - name: Test
-        run: tox -e py -- -vv
-
-  build-new-python:
-    strategy:
-      matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-
-    # The type of runner that the job will run on
-    runs-on: ubuntu-22.04
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version: ${{ matrix.python-version }}
+          enable-cache: true
 
-      # Runs a set of commands using the runners shell
-      - name: Setup
-        run: pip install tox
+      - run: uv tool install tox --python ${{ matrix.python-version }} --with tox-uv-bare --with tox-gh
 
-      - name: Show environment
-        run: set
-
-      - name: Test
-        run: tox -e py -- -vv
+      - name: Run tests
+        run: tox
+        env:
+          TOXENV: "${{ matrix.python-version }}"

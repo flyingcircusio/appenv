@@ -1,0 +1,24 @@
+# Read the Docs configuration file for Sphinx projects
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+# Required
+version: 2
+
+# Uses uv to manage virtualenv for building the docs, see:
+# https://docs.readthedocs.com/platform/stable/build-customization.html#install-dependencies-with-uv
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.14"
+  jobs:
+    pre_create_environment:
+      - asdf plugin add uv
+      - asdf install uv latest
+      - asdf global uv latest
+    create_environment:
+      - uv venv "${READTHEDOCS_VIRTUALENV_PATH}"
+    install:
+      - UV_PROJECT_ENVIRONMENT="${READTHEDOCS_VIRTUALENV_PATH}" uv sync --frozen --group docs
+sphinx:
+  configuration: docs/conf.py
+  fail_on_warning: false

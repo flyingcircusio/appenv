@@ -1,0 +1,18 @@
+# stubtest allowlist — false positives that cannot be removed by editing stubs.
+#
+# Each non-comment line is a regex that must `fullmatch` an error's object_desc
+# (the dotted path stubtest prints, e.g. "appenv.UvVersion._DT"). Consumed by
+# tools/check_stub_sync.py via `mypy.stubtest --allowlist`.
+#
+# check_stub_sync runs stubtest once per module, so it passes
+# `--ignore-unused-allowlist`: an entry that applies to one module (e.g. appenv)
+# is legitimately unused when checking the others. Keep this list minimal anyway,
+# and remove an entry when the mypy version in use stops producing its error.
+
+# mypy's dataclass plugin synthesizes a `_DT` TypeVar (the self type for the
+# eq/order comparison methods it generates) on every @dataclass(eq=True|order=True)
+# class. It lives only in mypy's analyzed TypeInfo, never at runtime, so stubtest
+# reports it as a phantom. `UvVersion` is @dataclass(order=True, frozen=True) at
+# runtime and the stub mirrors that declaration exactly; `_DT` is a fixed mypy
+# artifact, not stub drift.
+appenv\.UvVersion\._DT
