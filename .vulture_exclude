@@ -1,0 +1,11 @@
+# Vulture whitelist for false positives
+# Run: vulture src/ tests/ .vulture_exclude --min-confidence=80
+
+# src/appenv.py:159 - 'quiet' param in cmd() not implemented (API compat)
+quiet  # noqa
+
+# test_main.py:769 - lambda parameter must match function signature
+b  # noqa
+
+# test_update_lockfile.py:183 - pytest fixture declared but unused
+tmp_path  # noqa

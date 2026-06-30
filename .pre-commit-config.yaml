@@ -1,16 +1,44 @@
+exclude: ^appenv$
+
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
     hooks:
-    -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
--   repo: https://github.com/google/yapf
-    rev: 'v0.40.2'  # Use the sha / tag you want to point at
+      - id: detect-private-key
+      - id: check-added-large-files
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.16
     hooks:
-    -   id: yapf
-        args: [-i, -p]
--   repo: https://github.com/pycqa/flake8
-    rev: '7.0.0'  # pick a git hash / tag to point to
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+      - id: ruff-check
+        alias: ruff-pyi-check
+        name: ruff PYI stub style
+        args: [--select, PYI]
+        files: \.pyi$
+        # check-only (no --fix): structural stub changes such as __str__
+        # removal must be a conscious decision, not auto-committed — they can
+        # interact with the mypy.stubtest sync gate (tools/check_stub_sync.py).
+
+  - repo: local
     hooks:
-    -   id: flake8
+      - id: ty-check
+        name: ty type check
+        entry: uvx ty check src/
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+      - id: check-stub-sync
+        name: stub ↔ runtime sync (mypy.stubtest)
+        entry: uv run --group test --group mypy python tools/check_stub_sync.py
+        language: system
+        pass_filenames: false
+        always_run: true

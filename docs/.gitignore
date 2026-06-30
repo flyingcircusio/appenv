@@ -1,0 +1,7 @@
+# Sphinx build artifacts
+_build/
+autoapi/
+
+# OS files
+.DS_Store
+Thumbs.db

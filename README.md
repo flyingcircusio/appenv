@@ -1,96 +1,126 @@
 # appenv
 
-Self-contained bootstrapping/updating of Python applications deployed through shared repositories.
+[![E2E Tests](https://github.com/dpausp/appenv/actions/workflows/e2e.yml/badge.svg)](https://github.com/dpausp/appenv/actions/workflows/e2e.yml) [![Tox Tests](https://github.com/dpausp/appenv/actions/workflows/main.yml/badge.svg)](https://github.com/dpausp/appenv/actions/workflows/main.yml)
 
-> The following examples use the `ducker` package to illustrate how to use
->`appenv`. `ducker` and `appenv` are not related at all.
+appenv pins Python packages to exact versions and exposes their binaries
+via symlinks — one file, no installation step. Drop it into a repository,
+commit it, and every checkout (local or remote) gets the same tools at the
+same versions by running `./http`, `./pytest`, `./batou`, or whatever you need.
 
-## Bootstrapping an application / project
+**appenv never modifies your system** — all state lives in `.appenv/` inside
+the project directory. Remove that folder and nothing is left behind.
 
-Use `curl -sL https://github.com/flyingcircusio/appenv/raw/master/bootstrap | sh` for bootstrapping a new project.
+Built on [uv](https://docs.astral.sh/uv/) for environment management.
 
-```
-$ curl -sL https://github.com/flyingcircusio/appenv/raw/master/bootstrap | sh
-Let's create a new appenv project.
+## Using an existing appenv project
 
-What should the command be named? ducker <return>
-What is the main dependency as found on PyPI? [ducker] <return>
-Where should we create this? [/private/tmp/ducker] <return>
+Someone gave you a project that already uses appenv? Just run the command:
 
-Creating appenv setup in /private/tmp/ducker ...
-
-Done. You can now `cd ducker` and call `./ducker` to bootstrap and run it.
-
-$ cd ducker
-$ ./ducker
-Running unclean installation from requirements.txt
-Ensuring unclean install ...
-Please initiate a query.
-Ducker (? for help) q
+```console
+git clone <project> && cd <project>
+./http  # First run sets up everything automatically
 ```
 
-## Freezing requirements for repeatable builds
+Running the command will get an appenv-managed [uv](https://docs.astral.sh/uv/) if it's not globally available on your system.
 
-Using frozen requirements makes the builds repeatable for you and your team
-and also speeds up subsequent invocations:
+No `uv.lock` (should be committed) or dependencies changed?
 
-```
-$ ./appenv update-lockfile
-Updating lockfile
-Installing packages ...
-
-$ time ./ducker wikipedia
-Installing ducker ...
-./ducker wikipedia  2.91s user 0.99s system 88% cpu 4.407 total
-
-$ time ./ducker wikpedia
-./ducker wikipedia  0.22s user 0.11s system 90% cpu 0.371 total
-
+```console
+./appenv update-lockfile
 ```
 
-## Using a specific version of Python for your application
+(Only needed again after manually editing `pyproject.toml`)
 
-`appenv` tries to use the best Python version available. It bootstraps with
-the Python 3 interpreter available in your PATH as `python3` and then can
-either detect the newest Python or select the best python of your choice.
+Use `./appenv uv add/remove` to manage your dependencies or just use `uv` as you are used to it.
 
-Two disable the automatic detection of the newest version and provide a
-list of acceptable Python versions (tried in the order you list them)
-add the following line to your requirements.txt file:
 
-```
-# appenv-python-preference: 3.6,3.9,3.8
-```
+### Upgrading from requirements.txt
 
-The best version that is found on the system will be used to re-spawn appenv
-and then also used to manage the virtual environments for your application.
+Already an appenv user and still using `requirements.txt` instead of `pyproject.toml`?
 
-AppEnv itself is tested against Python 3.6+.
-
-## Learning more about appenv
-
-```
-$ ./appenv --help
-usage: appenv [-h] {update-lockfile,init,reset,prepare,python,run} ...
-
-positional arguments:
-  {update-lockfile,init,reset,prepare,python,run}
-    update-lockfile     Update the lock file.
-    init                Create a new appenv project.
-    reset               Reset the environment.
-    prepare             Prepare the venv.
-    python              Spawn the embedded Python interpreter REPL
-    run                 Run a script from the bin/ directory of the virtual env.
-
-options:
-  -h, --help            show this help message and exit
+```console
+uvx appenv migrate
 ```
 
-## Testing
+## New Project
 
-If you want to contribute, please install `tox` and run it.
+Requires Python 3.9+ (managed environments need 3.10+). [uv](https://docs.astral.sh/uv/) 0.5.0+ is auto-installed if not found.
+Get appenv via `uvx` or download the single-file script.
 
+`appenv init` will ask you some questions and set up the project (interactive
+by default — pass `--binary` and `--dep` for non-interactive use). The example
+assumes that you want to run a binary called `http` from the `httpie` package.
+
+### uvx (uv)
+
+`uvx` is part of [uv](https://docs.astral.sh/uv/) — the easiest way to start:
+
+```shell
+# appenv init is interactive
+# Answer:
+# httpie as dependency
+# http as binary
+uvx appenv init
+./http
 ```
-$ tox
 
+### Manual Download
+
+No uv installed? Download appenv directly:
+
+```shell
+curl -sL https://raw.githubusercontent.com/flyingcircusio/appenv/master/src/appenv.py -o appenv
+chmod +x appenv
+# appenv init is interactive
+# Answer:
+# httpie as dependency
+# http as binary
+./appenv init
+./http
 ```
+
+**What just happened?**
+
+- appenv installed itself inplace by adding the `./appenv` script.
+- `init` created `pyproject.toml` and a symlink `http → appenv`.
+- `./http` set up the venv with pinned versions from `uv.lock`, then ran the `http` binary (from the [httpie](https://github.com/httpie/httpie) package)
+
+The repository now contains:
+
+```shell
+myproject/
+├── appenv          # The appenv script
+├── http -> appenv  # Runs the `http` binary from installed deps
+├── pyproject.toml  # Project config and dependency list
+└── uv.lock         # Exact versions of all dependencies
+```
+
+All of these files should be VCS-tracked to ensure a consistent environment across all machines.
+
+### Non-Interactive / CI
+
+For scripts and CI pipelines — no TTY needed:
+
+```shell
+appenv init --binary http --dep httpie --name myproject
+```
+
+### Development
+
+For dev tooling, `uv run` and other `uv` commands work transparently.
+`appenv` automatically creates a `.venv` symlink to make this work:
+
+```shell
+# includes dev dependencies automatically
+uv run pytest -xvs
+```
+
+## Documentation
+
+Full documentation at [Readthedocs](https://appenv-test.readthedocs.io):
+
+- [User Guide](docs/user/index.md) -- how to get started with appenv
+- [Commands Reference](docs/user/commands.md) -- all commands with options
+- [Workflows](docs/user/workflows.md) -- common usage patterns
+- [Locking Behavior](docs/user/locking-behavior.md) -- how uv.lock works
+- [Developer Guide](docs/dev/index.md) -- development setup and architecture
