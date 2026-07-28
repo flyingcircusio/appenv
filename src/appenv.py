@@ -2014,7 +2014,12 @@ class AppEnv:
         log.debug("run-uv-chdir: target=%s", self.base)
         os.chdir(self.base)
 
-        run_env = self._build_env({"UV_PROJECT_ENVIRONMENT": str(self.venv_real)})
+        run_env = self._build_env(
+            {
+                "UV_PROJECT_ENVIRONMENT": str(self.venv_real),
+                "APPENV_BASEDIR": str(self.base),
+            }
+        )
         log.info("exec-uv: binary=%s argv=%s", uv.bin, uv_argv)
         os.execve(str(uv.bin), uv_argv, run_env)
 
