@@ -15,7 +15,7 @@ Important assumptions:
 
 from __future__ import annotations
 
-__version__ = "2026.6.30"
+__version__ = "2026.7.28"
 
 import argparse
 import difflib
