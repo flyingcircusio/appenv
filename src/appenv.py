@@ -15,7 +15,7 @@ Important assumptions:
 
 from __future__ import annotations
 
-__version__ = "2026.7.28"
+__version__ = "2026.7.29"
 
 import argparse
 import difflib
@@ -111,14 +111,11 @@ class UsageArgumentParser(argparse.ArgumentParser):
 
 
 class IndexEntry(NamedTuple):
-    """A ``[[tool.uv.index]]`` entry migrated from a pip index option.
-
-    ``url`` is always credential-free: the literal secret is stripped before
-    this object is constructed and never reaches pyproject.toml or stdout.
-    """
+    """A migrated ``[[tool.uv.index]]`` entry; ``url`` is ``raw_url`` minus credentials."""
 
     name: str
     url: str
+    raw_url: str
     has_credentials: bool
 
 
@@ -158,37 +155,6 @@ def _split_pip_option_token(token: str) -> tuple[str, str | None]:
     return name, value if sep else None
 
 
-def _strip_index_url_credentials(url: str) -> tuple[str, bool]:
-    """Return ``(clean_url, has_credentials)`` for a pip index URL.
-
-    Strips any ``user:password@`` userinfo so the literal secret can never
-    reach pyproject.toml. A credential-free URL is returned verbatim so it
-    round-trips exactly (e.g. ``==`` against the original holds).
-
-    Works on the raw netloc string rather than :class:`urllib.parse.SplitResult`
-    properties, which raise ``ValueError`` on malformed ports.
-    """
-    parts = urlsplit(url)
-    netloc = parts.netloc
-    if "@" not in netloc:
-        return url, False
-    userinfo, _, hostpart = netloc.rpartition("@")
-    clean_netloc = hostpart
-    clean = urlunsplit(
-        (parts.scheme, clean_netloc, parts.path, parts.query, parts.fragment)
-    )
-    return clean, bool(userinfo.strip())
-
-
-def _uv_index_env_token(name: str) -> str:
-    """uv env-var token for an index name: uppercase, non-alnum -> ``_``.
-
-    ``UV_INDEX_<NAME>_USERNAME`` / ``_PASSWORD`` per
-    https://docs.astral.sh/uv/concepts/indexes/#authentication
-    """
-    return re.sub(r"[^A-Z0-9]", "_", name.upper())
-
-
 def _index_name_from_url(url: str, used_names: set[str]) -> str:
     """Derive a unique, uv-compatible index name from the URL host.
 
@@ -207,16 +173,22 @@ def _index_name_from_url(url: str, used_names: set[str]) -> str:
 
 
 def _build_index_entries(raw_urls: list[str]) -> list[IndexEntry]:
-    """Build de-duplicated, credential-free index entries from raw URLs.
-
-    Duplicate URLs (after credential stripping) collapse to one entry, matching
-    pip's own de-duplication of repeated ``--extra-index-url`` lines.
-    """
+    """De-duplicated index entries from raw pip index URLs."""
     entries: list[IndexEntry] = []
     used_names: set[str] = set()
     seen_urls: set[str] = set()
     for raw in raw_urls:
-        clean, has_credentials = _strip_index_url_credentials(raw)
+        parts = urlsplit(raw)
+        netloc = parts.netloc
+        if "@" in netloc:
+            userinfo, _, host = netloc.rpartition("@")
+            clean = urlunsplit(
+                (parts.scheme, host, parts.path, parts.query, parts.fragment)
+            )
+            has_credentials = bool(userinfo.strip())
+        else:
+            clean = raw
+            has_credentials = False
         if clean in seen_urls:
             continue
         seen_urls.add(clean)
@@ -224,6 +196,7 @@ def _build_index_entries(raw_urls: list[str]) -> list[IndexEntry]:
             IndexEntry(
                 name=_index_name_from_url(clean, used_names),
                 url=clean,
+                raw_url=raw,
                 has_credentials=has_credentials,
             )
         )
@@ -288,10 +261,9 @@ def _parse_requirement_line(
 ) -> tuple[str | None, list[str], list[str]]:
     """Parse one requirements.txt line into ``(dep, index_urls, skipped)``.
 
-    ``dep`` is the dependency with all inline pip-options removed, or ``None``
-    when the line carried only options. ``index_urls`` are raw index URLs
-    (credentials stripped later, collectively). ``skipped`` lists each dropped
-    option by name (may contain duplicates across ``--hash`` repeats).
+    ``dep`` is the dependency with inline pip-options removed, or ``None``
+    when the line carried only options. ``skipped`` may contain duplicates
+    (e.g. repeated ``--hash`` on the same line).
     """
     tokens = line.split()
     dep_tokens: list[str] = []
@@ -544,9 +516,9 @@ class Pyproject:
                     index.url,
                 )
                 continue
-            token = _uv_index_env_token(index.name)
+            token = re.sub(r"[^A-Z0-9]", "_", index.name.upper())
             log.warning(
-                "migration-index-credentials-stripped: name=%s url=%s "
+                "migration-index-credentials-present: name=%s url=%s "
                 "env_username=UV_INDEX_%s_USERNAME env_password=UV_INDEX_%s_PASSWORD",
                 index.name,
                 index.url,
@@ -554,13 +526,12 @@ class Pyproject:
                 token,
             )
             print(
-                f"Warning: index '{index.name}' had embedded credentials in "
-                f"requirements.txt. They are NOT stored in pyproject.toml."
+                f"WARNING: index '{index.name}' has embedded credentials "
+                f"in pyproject.toml — they work now but may leak secrets to VCS."
             )
             print(
-                f"Provide them via environment variables "
-                f"UV_INDEX_{token}_USERNAME and UV_INDEX_{token}_PASSWORD "
-                f"(or a ~/.netrc entry for {index.url})."
+                f"Consider replacing them with environment variables "
+                f"UV_INDEX_{token}_USERNAME and UV_INDEX_{token}_PASSWORD."
             )
             print()
 
@@ -588,14 +559,7 @@ class Pyproject:
         )
 
     def _parse_requirements_file(self) -> RequirementsTxtInfo:
-        """Parse requirements.txt into dependencies, indexes, and skipped options.
-
-        pip-options (``--index-url``, ``--hash``, ...) are separated from real
-        dependencies so they never leak into ``[project] dependencies`` as
-        invalid PEP 508 specifiers. Index URLs become :class:`IndexEntry`
-        objects (credentials stripped); unsupported options are recorded in
-        ``skipped_options`` for the migrate warning.
-        """
+        """Parse requirements.txt into :class:`RequirementsTxtInfo`."""
         log.debug("parse-requirements-file: path=%s", self.requirements_path)
         content = self.requirements_path.read_text()
         raw_lines = [
@@ -706,7 +670,7 @@ requires-python = "{requires_python}"
     def _uv_index_section(indexes: list[IndexEntry]) -> str:
         """Render ``[[tool.uv.index]]`` entries from migrated index options."""
         blocks = [
-            f'[[tool.uv.index]]\nname = "{index.name}"\nurl = "{index.url}"'
+            f'[[tool.uv.index]]\nname = "{index.name}"\nurl = "{index.raw_url}"'
             for index in indexes
         ]
         return "\n\n".join(blocks) + "\n"
@@ -1880,6 +1844,10 @@ class AppEnv:
         pyproject = pyproject.migrate_from_requirements_txt()
         pyproject.print_migration_info()
 
+        # Write .gitignore BEFORE uv lock so the ignore entries survive a
+        # lock failure and users are not suprised by untracked files.
+        ensure_gitignore(self.base, _GITIGNORE_ENTRIES)
+
         uv_lock_out = self._uv_lock(uv, diff=False)
         print(uv_lock_out)
 
@@ -1887,7 +1855,6 @@ class AppEnv:
         print("Preparing/cleaning .appenv directory ...")
         self._prepare_appenv_dir()
 
-        ensure_gitignore(self.base, _GITIGNORE_ENTRIES)
         log.info("migrate-completed: base=%s", self.base)
         print("\n=== Pyproject Migration completed ===")
         print("requirements.{txt,lock} kept as legacy. You can delete these files now.")
