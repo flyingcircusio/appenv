@@ -10,20 +10,20 @@ generated ``dependencies`` list as invalid PEP 508 specifiers, crashing
 What is pinned (decided by the spec):
   * pip-options are separated from real dependencies and never written as deps.
   * ``--index-url`` / ``--extra-index-url`` become ``[[tool.uv.index]]`` entries.
-  * embedded credentials are stripped (the literal secret never reaches
-    pyproject.toml or stdout) and the user is warned with the exact
-    ``UV_INDEX_<NAME>_USERNAME`` / ``_PASSWORD`` env var names, where ``<NAME>``
-    is derived from the index name per uv's documented mechanism
-    (https://docs.astral.sh/uv/concepts/indexes/#authentication).
+   * embedded credentials are kept in pyproject.toml (so ``uv lock`` succeeds
+     without manual env-var setup), but the user is warned with the exact
+     ``UV_INDEX_<NAME>_USERNAME`` / ``_PASSWORD`` env var names and told to
+     consider removing the credentials from the URL.
   * options without a pyproject equivalent (``--hash``, ``--no-binary``,
     ``--only-binary``, ``--require-hashes``) are dropped with a warning that
     lists the skipped options.
 
 Deliberately NOT pinned (spec leaves open, so the implementer chooses):
-  * how the index ``name`` is derived from the URL.
-  * the exact stored URL representation when credentials are present (clean URL
-    vs ``$VAR`` placeholder). Only the security guarantee (no literal secret
-    leak) and the env-var guidance are asserted.
+   * how the index ``name`` is derived from the URL.
+   * the exact stored URL representation when credentials are present.
+     The security guarantee (no literal secret leak to stdout) and the
+     env-var guidance are asserted. Credentials in pyproject.toml are an
+     accepted trade-off — the warning tells the user to remove them.
 """
 
 import re
@@ -185,17 +185,20 @@ def test_migrate_assigns_distinct_names_to_multiple_indexes(migrate_reqs):
 
 
 # ============================================================================
-# Credentials: stripped (no literal secret leak) + env-var guidance.
+# Credentials: kept in pyproject (so uv lock works), warned to stdout.
 # ============================================================================
 
 
-def test_migrate_strips_index_credentials_and_warns_env_vars(migrate_reqs, patterns):
-    """Credentialed index URL: the secret never reaches pyproject or stdout, and
-    the user is told the exact ``UV_INDEX_<NAME>_USERNAME`` / ``_PASSWORD`` names.
+def test_migrate_keeps_credentials_in_pyproject_and_warns_env_vars(
+    migrate_reqs, patterns
+):
+    """Credentialed index URL: the secret IS kept in pyproject.toml (so ``uv
+    lock`` works without manual env-var setup), but the user is warned with
+    the exact ``UV_INDEX_<NAME>_USERNAME`` / ``_PASSWORD`` names and instructed
+    to consider removing credentials from the URL.
 
-    Merges the security contract (no literal leak anywhere) with the UX contract
-    (env-var guidance emitted). The exact derived token is still asserted per
-    index so a token-derivation regression cannot hide behind a wildcard.
+    Security contract: no literal secret leak to stdout (pyproject.toml is the
+    accepted trade-off — the warning tells the user to fix it).
     """
     result = migrate_reqs(
         "--extra-index-url https://deploy:s3cr3t@gitlab.example.com/simple\nrequests\n"
@@ -205,8 +208,8 @@ def test_migrate_strips_index_credentials_and_warns_env_vars(migrate_reqs, patte
     assert len(indexes) == 1
     assert "gitlab.example.com" in indexes[0]["url"]
 
-    # Security: the literal secret must never appear in pyproject.
-    assert "s3cr3t" not in result.pyproject
+    # Secret is in pyproject.toml so uv lock can authenticate.
+    assert "s3cr3t" in result.pyproject
 
     # UX: the exact derived env-var token is advertised for each credentialed index.
     for idx in indexes:
@@ -308,7 +311,11 @@ def test_migrate_warns_lists_all_skipped_pip_options(migrate_reqs):
 
 
 def test_migrate_gitlab_private_registry_end_to_end(migrate_reqs):
-    """A GitLab Package Registry requirements.txt migrates cleanly."""
+    """A GitLab Package Registry requirements.txt migrates cleanly.
+
+    Credentials are kept in pyproject (so uv lock works) but not in stdout;
+    the user is warned to replace them with env vars.
+    """
     result = migrate_reqs(
         "--extra-index-url https://deploy:s3cr3t@gitlab.example.com/api/v4/"
         "projects/42/packages/pypi/simple\n"
@@ -323,14 +330,14 @@ def test_migrate_gitlab_private_registry_end_to_end(migrate_reqs):
         "requests",
     ]
 
-    # Index entry created, host preserved, secret stripped everywhere.
+    # Index entry created, host preserved, secret kept in pyproject (so uv
+    # lock works), not leaked to stdout.
     indexes = _extract_uv_indexes(result.pyproject)
     assert len(indexes) == 1
     assert (
         "gitlab.example.com/api/v4/projects/42/packages/pypi/simple"
         in indexes[0]["url"]
     )
-    assert "s3cr3t" not in result.pyproject
     assert "s3cr3t" not in result.stdout
 
     # Credential env-var guidance + skipped-option warnings are emitted.
@@ -405,9 +412,9 @@ def test_migrate_assigns_numeric_suffix_when_index_hosts_collide(migrate_reqs):
 def test_migrate_dedups_repeated_identical_index_url(migrate_reqs):
     """Two identical --extra-index-url lines collapse to a single index entry.
 
-    Drives the de-duplication ``continue`` branch: a URL already seen (after
-    credential stripping) is not emitted a second time, matching pip's own
-    de-duplication of repeated ``--extra-index-url`` lines.
+    Drives the de-duplication ``continue`` branch: a URL already seen (the
+    dedup key is the credential-free ``url``) is not emitted a second time,
+    matching pip's own de-duplication of repeated ``--extra-index-url`` lines.
     """
     result = migrate_reqs(
         "--extra-index-url https://gitlab.example.com/simple\n"

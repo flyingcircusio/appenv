@@ -150,14 +150,22 @@ Every line starting with `-` is treated as a pip-option and kept out of the `[pr
 
 `--index-url` and `--extra-index-url` are translated into [`[[tool.uv.index]]`](https://docs.astral.sh/uv/configuration/indexes/) entries in `pyproject.toml`. This is what unblocks projects using private registries (GitLab Package Registry, AWS CodeArtifact, Artifactory).
 
-**Credentials are never copied into `pyproject.toml`.** If an index URL carries embedded credentials (deploy token, API key), migrate strips them and writes only the clean URL, then tells you which environment variables to set so `uv lock` can authenticate. The names follow uv's [index authentication](https://docs.astral.sh/uv/configuration/indexes/#authenticated-private-registries) convention:
+**Credentials are preserved in `pyproject.toml` so `uv lock` can authenticate
+immediately** — if the index URL carries embedded credentials (deploy token,
+API key), they are written as-is to the `url` field in
+`[[tool.uv.index]]`. This is an accepted security trade-off: the secret is
+needed for package resolution. However, the credential is removed from
+standard output and the warning suggests switching to uv's index environment
+variables to keep secrets out of VCS:
 
 | Variable | Purpose |
 |----------|---------|
 | `UV_INDEX_<NAME>_USERNAME` | Username for index `<NAME>` |
 | `UV_INDEX_<NAME>_PASSWORD` | Password or token for index `<NAME>` |
 
-`<NAME>` is the index name in uppercase. Set these in your shell (or CI secrets) before running `uv lock`. As an alternative to environment variables, you can put credentials in `~/.netrc`.
+`<NAME>` is the index name in uppercase. After migration, consider removing
+the embedded credentials from `pyproject.toml` and setting these variables in
+your shell or CI secrets instead.
 
 #### Unsupported options → dropped with warning
 

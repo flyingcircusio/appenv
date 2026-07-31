@@ -30,6 +30,7 @@ class UsageArgumentParser(argparse.ArgumentParser):
 class IndexEntry(NamedTuple):
     name: str
     url: str
+    raw_url: str
     has_credentials: bool
 
 _PIP_INDEX_URL_OPTIONS: Final[frozenset[str]]
@@ -44,8 +45,6 @@ class RequirementsTxtInfo(NamedTuple):
     skipped_options: list[str]
 
 def _split_pip_option_token(token: str) -> tuple[str, str | None]: ...
-def _strip_index_url_credentials(url: str) -> tuple[str, bool]: ...
-def _uv_index_env_token(name: str) -> str: ...
 def _index_name_from_url(url: str, used_names: set[str]) -> str: ...
 def _build_index_entries(raw_urls: list[str]) -> list[IndexEntry]: ...
 def _consume_next_value(

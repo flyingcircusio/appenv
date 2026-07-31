@@ -9,6 +9,10 @@ constant `_GITIGNORE_ENTRIES` so a user running `git add -A` after either
 command never silently commits the `.appenv/venv/` tree.
 """
 
+import subprocess
+
+import pytest
+
 import appenv
 
 EXPECTED_GITIGNORE_ENTRIES = appenv._GITIGNORE_ENTRIES
@@ -136,3 +140,37 @@ def test_init_and_migrate_share_gitignore_entries_constant(
     )
     assert init_entries is appenv._GITIGNORE_ENTRIES
     assert init_entries == EXPECTED_GITIGNORE_ENTRIES
+
+
+def test_migrate_writes_gitignore_even_when_uv_lock_fails(
+    tmp_path, monkeypatch, app_env
+):
+    """reorder-migrate::gitignore-before-lock — ensure_gitignore runs BEFORE uv
+    lock, so .gitignore is written even when uv lock crashes.
+
+    Regression test for the original bug: migrate() called ensure_gitignore
+    AFTER _uv_lock, so a lock failure (e.g. missing credentials for a private
+    index) prevented .gitignore from being written.
+    """
+    base = tmp_path
+    (base / "requirements.txt").write_text(
+        "--extra-index-url https://deploy:s3cr3t@gitlab.example.com/simple\nrequests\n"
+    )
+
+    def _raise(self, uv, diff=False):
+        raise subprocess.CalledProcessError(returncode=1, cmd=["uv", "lock"])
+
+    monkeypatch.setattr(appenv.AppEnv, "_uv_lock", _raise)
+
+    env = app_env(base)
+    with pytest.raises(subprocess.CalledProcessError):
+        env.migrate()
+
+    # .gitignore was written despite the crash.
+    gitignore = base / ".gitignore"
+    assert gitignore.exists()
+    gitignore_lines = gitignore.read_text().splitlines()
+    for entry in EXPECTED_GITIGNORE_ENTRIES:
+        assert entry in gitignore_lines, (
+            f"migrate must add {entry!r} to .gitignore even when uv lock fails"
+        )
